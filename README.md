@@ -5,3 +5,6 @@ Homework of the lesson Introduction to AI,using computer to make chuci
 2. `model.py` 训练模型，主体基于有Attention机制的seq2seq模型
 3. `main.py` 训练主程序
 4. `interact.py` 交互处理
+
+#### 数据来源
+https://github.com/chinese-poetry/chinese-poetry
