@@ -1,5 +1,5 @@
 # NLP-chuci-generator
-Homework of the lesson Introduction to AI,using computer to make chuci
+Homework of the lesson *Introduction to AI*,using computer to make chuci
 ### 构成
 1. `config.py` default settings 
 2. `dataloader.py` 数据的改造与处理
