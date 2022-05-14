@@ -29,7 +29,7 @@ class Encoder(nn.Module):
         return output,hidden
 
 class S2SModel(nn.Module):
-    def __init__(self,voc_size,input_size,hidden_size,n_layers,,sep_id):
+    def __init__(self,voc_size,input_size,hidden_size,n_layers,sep_id):
         super.__init__()
         self.voc_size = voc_size
         self.max_len = config.max_len
@@ -50,7 +50,7 @@ class S2SModel(nn.Module):
             enc_inputs[:,0] = input
             for i in range(config.max_len):
                 output,hidden = self.encoder(input.unsqueeze(1),hidden,enc_outputs)
-                outputs[:,sent_id,i,:] = output(:,0,:)
+                outputs[:,sent_id,i,:] = output[:,0,:]
                 input = (targets[:,sent_id,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2))
                 enc_inputs[:,i+1] = input
 
@@ -77,11 +77,11 @@ class AttentionDecoder(nn.Module):
         self.drop = config.drop
         self.enc_output_size = enc_output_size
         self.lstm = nn.LSTM(
-            input_size = input_size + enc_output_size
-            hidden_size = hidden_size
-            num_layers = n_layers
-            batch_first = True
-        )
+                input_size = input_size + enc_output_size,
+                hidden_size = hidden_size,
+                num_layers = n_layers,
+                batch_first = True,
+            )
         self.attention = Attention(enc_output_size,hidden_size)
         self.layer_norm = nn.LayerNorm(hidden_size)
         self.fc = nn.Linear(hidden_size,voc_size)
