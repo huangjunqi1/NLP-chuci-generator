@@ -3,12 +3,15 @@ import torch.nn as nn
 import random
 import config
 
+#Pad `padding` id
+#Eos `end of sentence` id
 Pad = config.Pad
 Eos = config.Eos
 
 class Encoder(nn.Module):
     def __init__(self, voc_size, input_size, hidden_size,n_layers):
         super.__init__()
+        # input_size : embedding_dim
         self.embedding = self.embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=input_size , padding_idx=Pad)
         self.n_layers = n_layers
         self.hidden_size = hidden_size
@@ -21,8 +24,11 @@ class Encoder(nn.Module):
             )
         self.layer_norm = nn.LayerNorm(hidden_size)
     def forward(self,input,hidden=None):
+        # input: batch_size*max_len
+        # embedding: batch_size*maxlen*voc_size
         embedding = self.embedding(input)
         embedding = self.drop(embedding)
+        # output: batch_size*maxlen_hidden_size
         output , hidden = self.lstm(embedding,hidden)
         output = self.layer_norm(output)
         output = self.drop(output)
@@ -37,6 +43,7 @@ class S2SModel(nn.Module):
         self.decoder = AttentionDecoder(self.voc_size,input_size,hidden_size,hidden_size,n_layers)
         self.sep_id = sep_id
     def forward(self,inputs,hidden=None,targets=None,teacher_force_ratio=config.teacher_for_ratio):
+        # inputs: batch_size*num_sents*max_len
         num_sents = inputs.size(1)
         outputs = torch.zeros(inputs.size(0),inputs.size(1),self.max_len,self.voc_size,device=inputs.device)
         enc_hidden = None
@@ -48,7 +55,7 @@ class S2SModel(nn.Module):
             input = inputs[:,sent_id,0]
             enc_inputs = torch.zeros(inputs.size(0),self.max_len + 1, dtype = torch.long, device = inputs.device)
             enc_inputs[:,0] = input
-            for i in range(config.max_len):
+            for i in range(self.max_len):
                 output,hidden = self.encoder(input.unsqueeze(1),hidden,enc_outputs)
                 outputs[:,sent_id,i,:] = output[:,0,:]
                 input = (targets[:,sent_id,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2))
@@ -73,7 +80,7 @@ class Attention(nn.Module):
 class AttentionDecoder(nn.Module):
     def __init__(self,voc_size,input_size,enc_output_size,hidden_size,n_layers):
         super().__init__()
-        self.embedding = nn.Embedding(num_embedding=voc_size,embedding_dim=input_size)
+        self.embedding = nn.Embedding(num_embedding=voc_size,embedding_dim=input_size,padding_idx = Pad)
         self.drop = config.drop
         self.enc_output_size = enc_output_size
         self.lstm = nn.LSTM(
