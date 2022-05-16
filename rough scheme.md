@@ -40,7 +40,7 @@ seq2seq模型，attention打分、合成
 1. `dataloader` 中需要加padding至max_len ,希望一个batch中的数据是根据原句长降序排序的
 2. `embedding`过程中，直接加`padding_idx = PAD`即可
 3. 计算损失函数loss时,应忽略padding
-4. Attention机制中的source。给padding的位置全部加上$-\infty$($e^{-\infity} = 0$)
+4. Attention机制中的source。给padding的位置全部加上$-\infty$($e^{-\infty} = 0$)
 
 ### 输出
 同藏头诗？外加随机指定句数。
