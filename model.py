@@ -60,7 +60,7 @@ class S2SModel(nn.Module):
                 continue
             enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
             input = torch.LongTensor([[Sos]]*config.batch_size)
-            enc_inputs = torch.zeros(inputs.size(0),self.max_len + 1, dtype = torch.long, device = inputs.device)
+            enc_inputs = torch.zeros(inputs.size(0),self.max_len , dtype = torch.long, device = inputs.device)
             enc_inputs[:,0] = input
             flag = []
             for i in range(batch_size): flag.append(0)
@@ -86,9 +86,11 @@ class Attention(nn.Module):
         self.v = nn.Linear(dec_dim,1,bias=False)
     def forward(self,dec_hidden,enc_outputs,key_padding_mask):
         dec_hidden = dec_hidden.unsqueeze(1).expand_as(enc_outputs)
+        # energy: batch_sz * maxlen * hidden_sz
         energy = torch.tanh(self.atten(torch.cat([dec_hidden,enc_outputs],dim=2)))
         #print(energy)
         scores = self.v(energy).squeeze(2)
+        # score: batch_sz * maxlen
         score = scores.masked_fill(key_padding_mask,-1e9)
         #print(score.size())
         
@@ -114,7 +116,10 @@ class AttentionDecoder(nn.Module):
         embedding = self.embedding(input)
         embedding = self.drop(embedding)
         if enc_outputs is not None:
+            # a: batch_sz * maxlen
+            # dec_hidden: 2 * num_layers * batch_sz * hidden_sz
             a = self.attention(dec_hidden[0][-1],enc_outputs,key_padding_mask)
+            # context : batch_sz * 1 * enc_hidden_sz
             context = a.unsqueeze(1) @ enc_outputs
         else:
             context = torch.zeros(embedding.size(0),1,self.enc_output_size,device=embedding.device)
