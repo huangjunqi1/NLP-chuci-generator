@@ -7,7 +7,8 @@ import dataloader
 #Pad `padding` id
 #Eos `end of sentence` id
 Pad = config.Pad
-Eos = config.Eos
+Eos1 = config.comma
+Eos2 = config.dot
 #key_padding_mask: True if padding,Flase if not padding
 
 class Encoder(nn.Module):
@@ -43,10 +44,11 @@ class S2SModel(nn.Module):
         self.max_len = config.max_len
         self.encoder = Encoder(self.voc_size,input_size,hidden_size,n_layers)
         self.decoder = AttentionDecoder(self.voc_size,input_size,hidden_size,hidden_size,n_layers)
-        self.sep_id = sep_id
-    def forward(self,key_padding_mask,inputs,hidden=None,targets=None,teacher_force_ratio=config.teacher_for_ratio):
+        # self.sep_id = sep_id
+    def forward(self,inputs,hidden=None,targets=None,teacher_force_ratio=config.teacher_for_ratio):
         # inputs: batch_size*num_sents*max_len
         num_sents = inputs.size(1)
+        batch_size = inputs.size(0)
         outputs = torch.zeros(inputs.size(0),inputs.size(1),self.max_len,self.voc_size,device=inputs.device)
         enc_hidden = None
         enc_outputs = None
@@ -57,12 +59,18 @@ class S2SModel(nn.Module):
             input = inputs[:,sent_id,0]
             enc_inputs = torch.zeros(inputs.size(0),self.max_len + 1, dtype = torch.long, device = inputs.device)
             enc_inputs[:,0] = input
+            flag = []
+            for i in range(batch_size): flag.append(0)
             for i in range(self.max_len):
                 output,hidden = self.encoder(input.unsqueeze(1),hidden,enc_outputs)
                 outputs[:,sent_id,i,:] = output[:,0,:]
                 input = (targets[:,sent_id,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2))
+                for j in range(batch_size):
+                    if (input[j].item() == Eos1 or input[j].item() == Eos2) : flag[j] = 1
+                    if (flag[j]): input[j] = Pad
                 enc_inputs[:,i+1] = input
-
+            key_padding_mask = None
+            
             #sep_id = self.sep_id[sent_id % 2]
             #input = torch.tensor(sep_id , dtype = torch.long, device = inputs.device).expand_as(input)
             #enc_inputs[:,self.max_len] = input
