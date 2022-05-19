@@ -15,7 +15,6 @@ Sos = config.Sos
 class Encoder(nn.Module):
     def __init__(self, voc_size, input_size, hidden_size,n_layers):
         super.__init__()
-        # input_size : embedding_dim
         self.embedding = self.embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=input_size , padding_idx=Pad)
         self.n_layers = n_layers
         self.hidden_size = hidden_size
@@ -53,19 +52,22 @@ class S2SModel(nn.Module):
         outputs = torch.zeros(inputs.size(0),inputs.size(1),self.max_len,self.voc_size,device=inputs.device)
         enc_hidden = None
         enc_outputs = None
+        key_padding_mask = torch.zeors(batch_size,self.max_len,dtype=torch.bool)
         for sent_id in range(num_sents):
-            key_padding_mask = torch.zeors(batch_size,self.max_len,dtype=torch.bool)
             if (sent_id == 0):
-                enc_inputs = inputs
+                enc_inputs = inputs[:,0,:]
+                for i in range(batch_size):
+                    for j in range(self.max_len):
+                        if (inputs[i][0][j]==Pad): key_padding_mask[i][j] = True
                 continue
             enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
-            input = torch.LongTensor([[Sos]]*config.batch_size)
+            input = torch.LongTensor([[Sos]]*batch_size)
             enc_inputs = torch.zeros(inputs.size(0),self.max_len , dtype = torch.long, device = inputs.device)
             enc_inputs[:,0] = input
             flag = []
             for i in range(batch_size): flag.append(0)
             for i in range(self.max_len):
-                output,hidden = self.decoder(input.unsqueeze(1),hidden,enc_outputs)
+                output,hidden = self.decoder(key_padding_mask,input,hidden,enc_outputs)
                 outputs[:,sent_id,i,:] = output[:,0,:]
                 input = (targets[:,sent_id,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2))
                 for j in range(batch_size):
