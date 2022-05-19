@@ -1,64 +1,50 @@
 from tkinter import *
 from PIL import Image,ImageTk
-from tkinter import scrolledtext        # 导入滚动文本框的模块
-# from webbrowser import get
-import torch
-import config
-# from argparse import ArgumentParser
-# from model import S2SModel
-
+from tkinter import scrolledtext     
 sent_num = 20
-
-# parser = ArgumentParser()
-# parser.add_argument("--dataset", default="wuyanlvshi", type=str)
-# parser.add_argument("--model", default="simple", type=str)
-# args = parser.parse_args()
-
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# model_path = f'checkpoints/{args.dataset}_{args.model}_best_model.pt'
-# # 读取模型参数和词表
-# ckpt = torch.load(model_path)
-# vocab = ckpt['vocab']
-# inversed_vocab = ckpt['inversed_vcaob']
-# # 建立模型
-# input_size = 300
-# hidden_size = 512
-# n_layers = 2
-# model_fn = Seq2seqModel if args.model == 'seq2seq' else SimpleModel
-# model = model_fn(
-#     voc_size=len(vocab) + 1,
-#     input_size=input_size,
-#     hidden_size=hidden_size,
-#     n_layers=n_layers,
-#     sent_length=5 if args.dataset == "wuyanlvshi" else 7,
-#     sep_id=[vocab['，'], vocab['。']]
-# )
-# # 加载保存的参数到模型当中
-# model.load_state_dict(ckpt['model'])
-# model = model.to(device)
-# # 设置生成的诗句数量和长度
 
 def generate(inputs):
     # inputs: batch_size*num_sents*max_len    
     #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
+    import torch
+    import config
+    from webbrowser import get
+    from model import S2SModel
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model_path = f'checkpoints/{args.dataset}_{args.model}_best_model.pt'
+    ckpt = torch.load(model_path)
+    vocab = ckpt['vocab']
+    inversed_vocab = ckpt['inversed_vcaob']
+    # 建立模型
+    input_size = 300
+    hidden_size = 512
+    n_layers = 2
+    model = S2SModel(
+        voc_size=len(vocab) + 1,
+        input_size=input_size,
+        hidden_size=hidden_size,
+        n_layers=n_layers,
+    )
+    # 加载保存的参数到模型当中
+    model.load_state_dict(ckpt['model'])
+    model = model.to(device) 
     outputs,hidden = model(inputs, teacher_force_ratio=0)
     sents=[]
-    # for i in range(n_sents):
-    #     print(heads[i],end='')
-    #     for j in range(0,n_words): #从第二个字到标点
-    #         ids = outputs[0,i,j,:]
-    #         value,index = torch.topk(ids,2)
-    #         if((inversed_vocab[index[0].item()] == '，' or inversed_vocab[index[0].item()] == '。') and j != n_words-1 ):
-    #             print(inversed_vocab[index[1].item()],end='')
-    #         else:
-    #             print(inversed_vocab[ids.argmax().item()],end='')
-    #     print()
+    sent =''
+    for i in range(sent_num):
+        for j in range(0,config.max_len): #从第二个字到标点
+            possiblity = outputs[0,i,j,:]            
+            value,index = torch.topk(possiblity,5)
+            word = inversed_vocab[index[0].item()]
+            sent = sent + word
+        sents.append(sent)
+        sent = ''
     return sents
             
 
 
 root=Tk()
-root.geometry("400x700+600+30")#对应的格式为宽乘以高加上水平偏移量加上垂直偏移量
+root.geometry("400x700+600+30")#宽乘以高加上水平偏移量加上垂直偏移量
 root.title("233")
 def get_image(image_name , width , height):
     im = Image.open(image_name).resize((width , height))
@@ -73,15 +59,17 @@ data = StringVar()
 entry =Entry(root ,font=("华文行楷",15),textvariable=data)#创建labal组件并将其与data关联
 
 def callback():
+    import torch
+    import config
     vocab = {}
-    # inputs = torch.zeros(1,sent_num,config.max_len)
-    # for i,word in enumerate(data.get()):
-    #     inputs[0,0,i] = vocab[word]
-    # for i in range(len(data.get()),config.max_len):
-    #     inputs[0,0,i] = config.Pad 
-#    sents = generate(inputs)      #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
-    sents = ["帝高阳之苗裔兮","朕皇考曰伯约","摄提贞于孟陬兮","唯庚寅吾以降"]
-    text.delete('1.0','end')
+    inputs = torch.zeros(1,sent_num,config.max_len)
+    for i,word in enumerate(data.get()):
+        inputs[0,0,i] = vocab[word]
+    for i in range(len(data.get()),config.max_len):
+        inputs[0,0,i] = config.Pad 
+    sents = generate(inputs)      #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
+    # sents = ["帝高阳之苗裔兮","朕皇考曰伯约","摄提贞于孟陬兮","唯庚寅吾以降"]
+    # text.delete('1.0','end')
     for sent in sents:
         text.insert(INSERT,sent)        
         text.insert(INSERT,'\n')  
