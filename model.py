@@ -9,6 +9,7 @@ import dataloader
 Pad = config.Pad
 Eos1 = config.comma
 Eos2 = config.dot
+Sos = config.Sos
 #key_padding_mask: True if padding,Flase if not padding
 
 class Encoder(nn.Module):
@@ -56,7 +57,7 @@ class S2SModel(nn.Module):
             key_padding_mask = torch.zeors(batch_size,self.max_len,dtype=torch.bool)
             if sent_id > 0:
                 enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
-            input = inputs[:,sent_id,0]
+            input = torch.LongTensor([[Sos]]*config.batch_size)
             enc_inputs = torch.zeros(inputs.size(0),self.max_len + 1, dtype = torch.long, device = inputs.device)
             enc_inputs[:,0] = input
             flag = []
