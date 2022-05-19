@@ -55,15 +55,17 @@ class S2SModel(nn.Module):
         enc_outputs = None
         for sent_id in range(num_sents):
             key_padding_mask = torch.zeors(batch_size,self.max_len,dtype=torch.bool)
-            if sent_id > 0:
-                enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
+            if (sent_id == 0):
+                enc_inputs = inputs
+                continue
+            enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
             input = torch.LongTensor([[Sos]]*config.batch_size)
             enc_inputs = torch.zeros(inputs.size(0),self.max_len + 1, dtype = torch.long, device = inputs.device)
             enc_inputs[:,0] = input
             flag = []
             for i in range(batch_size): flag.append(0)
             for i in range(self.max_len):
-                output,hidden = self.encoder(input.unsqueeze(1),hidden,enc_outputs)
+                output,hidden = self.decoder(input.unsqueeze(1),hidden,enc_outputs)
                 outputs[:,sent_id,i,:] = output[:,0,:]
                 input = (targets[:,sent_id,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2))
                 for j in range(batch_size):
@@ -74,11 +76,7 @@ class S2SModel(nn.Module):
                             input[j] = Pad
                             key_padding_mask[j][i] = True
                 enc_inputs[:,i+1] = input
-            
-            #sep_id = self.sep_id[sent_id % 2]
-            #input = torch.tensor(sep_id , dtype = torch.long, device = inputs.device).expand_as(input)
-            #enc_inputs[:,self.max_len] = input
-            output,hidden = self.decoder(key_padding_mask,input.unsqueeze(1),hidden,enc_outputs) 
+            # output,hidden = self.decoder(key_padding_mask,input.unsqueeze(1),hidden,enc_outputs) 
         return outputs,hidden
 
 class Attention(nn.Module):
