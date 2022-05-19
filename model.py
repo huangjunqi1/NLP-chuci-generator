@@ -52,8 +52,8 @@ class S2SModel(nn.Module):
         outputs = torch.zeros(inputs.size(0),inputs.size(1),self.max_len,self.voc_size,device=inputs.device)
         enc_hidden = None
         enc_outputs = None
-
         for sent_id in range(num_sents):
+            key_padding_mask = torch.zeors(batch_size,self.max_len,dtype=torch.bool)
             if sent_id > 0:
                 enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
             input = inputs[:,sent_id,0]
@@ -66,10 +66,13 @@ class S2SModel(nn.Module):
                 outputs[:,sent_id,i,:] = output[:,0,:]
                 input = (targets[:,sent_id,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2))
                 for j in range(batch_size):
-                    if (input[j].item() == Eos1 or input[j].item() == Eos2) : flag[j] = 1
-                    if (flag[j]): input[j] = Pad
+                    if (input[j].item() == Eos1 or input[j].item() == Eos2): 
+                        flag[j] = 1
+                    else:
+                        if (flag[j]):
+                            input[j] = Pad
+                            key_padding_mask[j][i] = True
                 enc_inputs[:,i+1] = input
-            key_padding_mask = None
             
             #sep_id = self.sep_id[sent_id % 2]
             #input = torch.tensor(sep_id , dtype = torch.long, device = inputs.device).expand_as(input)
