@@ -7,7 +7,9 @@ import dataloader
 #Pad `padding` id
 #Eos `end of sentence` id
 Pad = config.Pad
-Eos = config.Eos
+Eos1 = config.comma
+Eos2 = config.dot
+Sos = config.Sos
 #key_padding_mask: True if padding,Flase if not padding
 
 class Encoder(nn.Module):
@@ -43,30 +45,38 @@ class S2SModel(nn.Module):
         self.max_len = config.max_len
         self.encoder = Encoder(self.voc_size,input_size,hidden_size,n_layers)
         self.decoder = AttentionDecoder(self.voc_size,input_size,hidden_size,hidden_size,n_layers)
-        self.sep_id = sep_id
-    def forward(self,key_padding_mask,inputs,hidden=None,targets=None,teacher_force_ratio=config.teacher_for_ratio):
+        # self.sep_id = sep_id
+    def forward(self,inputs,hidden=None,targets=None,teacher_force_ratio=config.teacher_for_ratio):
         # inputs: batch_size*num_sents*max_len
         num_sents = inputs.size(1)
+        batch_size = inputs.size(0)
         outputs = torch.zeros(inputs.size(0),inputs.size(1),self.max_len,self.voc_size,device=inputs.device)
         enc_hidden = None
         enc_outputs = None
-
         for sent_id in range(num_sents):
-            if sent_id > 0:
-                enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
-            input = inputs[:,sent_id,0]
-            enc_inputs = torch.zeros(inputs.size(0),self.max_len + 1, dtype = torch.long, device = inputs.device)
+            key_padding_mask = torch.zeors(batch_size,self.max_len,dtype=torch.bool)
+            if (sent_id == 0):
+                enc_inputs = inputs
+                continue
+            enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
+            input = torch.LongTensor([[Sos]]*config.batch_size)
+            enc_inputs = torch.zeros(inputs.size(0),self.max_len , dtype = torch.long, device = inputs.device)
             enc_inputs[:,0] = input
+            flag = []
+            for i in range(batch_size): flag.append(0)
             for i in range(self.max_len):
-                output,hidden = self.encoder(input.unsqueeze(1),hidden,enc_outputs)
+                output,hidden = self.decoder(input.unsqueeze(1),hidden,enc_outputs)
                 outputs[:,sent_id,i,:] = output[:,0,:]
                 input = (targets[:,sent_id,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2))
+                for j in range(batch_size):
+                    if (input[j].item() == Eos1 or input[j].item() == Eos2): 
+                        flag[j] = 1
+                    else:
+                        if (flag[j]):
+                            input[j] = Pad
+                            key_padding_mask[j][i] = True
                 enc_inputs[:,i+1] = input
-
-            #sep_id = self.sep_id[sent_id % 2]
-            #input = torch.tensor(sep_id , dtype = torch.long, device = inputs.device).expand_as(input)
-            #enc_inputs[:,self.max_len] = input
-            output,hidden = self.decoder(key_padding_mask,input.unsqueeze(1),hidden,enc_outputs) 
+            # output,hidden = self.decoder(key_padding_mask,input.unsqueeze(1),hidden,enc_outputs) 
         return outputs,hidden
 
 class Attention(nn.Module):
@@ -76,9 +86,11 @@ class Attention(nn.Module):
         self.v = nn.Linear(dec_dim,1,bias=False)
     def forward(self,dec_hidden,enc_outputs,key_padding_mask):
         dec_hidden = dec_hidden.unsqueeze(1).expand_as(enc_outputs)
+        # energy: batch_sz * maxlen * hidden_sz
         energy = torch.tanh(self.atten(torch.cat([dec_hidden,enc_outputs],dim=2)))
         #print(energy)
         scores = self.v(energy).squeeze(2)
+        # score: batch_sz * maxlen
         score = scores.masked_fill(key_padding_mask,-1e9)
         #print(score.size())
         
@@ -104,7 +116,10 @@ class AttentionDecoder(nn.Module):
         embedding = self.embedding(input)
         embedding = self.drop(embedding)
         if enc_outputs is not None:
+            # a: batch_sz * maxlen
+            # dec_hidden: 2 * num_layers * batch_sz * hidden_sz
             a = self.attention(dec_hidden[0][-1],enc_outputs,key_padding_mask)
+            # context : batch_sz * 1 * enc_hidden_sz
             context = a.unsqueeze(1) @ enc_outputs
         else:
             context = torch.zeros(embedding.size(0),1,self.enc_output_size,device=embedding.device)

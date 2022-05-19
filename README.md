@@ -9,3 +9,6 @@ Homework of the lesson *Introduction to AI*,using computer to make chuci
 
 ### 数据来源
 https://github.com/chinese-poetry/chinese-poetry
+
+### collaborators
+@huangjunqi1 @Ly-kc @Halowangqx @capthel
