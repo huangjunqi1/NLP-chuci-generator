@@ -39,7 +39,7 @@ class Encoder(nn.Module):
         return output,hidden
 
 class S2SModel(nn.Module):
-    def __init__(self,voc_size,input_size,hidden_size,n_layers,sep_id):
+    def __init__(self,voc_size,input_size,hidden_size,n_layers):
         super.__init__()
         self.voc_size = voc_size
         self.max_len = config.max_len
