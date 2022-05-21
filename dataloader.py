@@ -27,7 +27,7 @@ class vocab_load(object):
 Vocab = vocab_load()
 
 class PoemDataset(object):
-    def __init__(self, data_path, min_freq=2):
+    def __init__(self, data_path, test_size=0.1):
         all_sents = []
 
         with open(data_path, 'r', encoding='utf-8-sig') as f:
@@ -36,8 +36,7 @@ class PoemDataset(object):
         
         self.vocab=Vocab
         self.entire_set = self.data_process(all_sents)
-        self.train_set, self.test_set = train_test_split(
-            self.entire_set, test_size=0.1, shuffle=True, random_state=0)
+        self.train_set, self.test_set = train_test_split(self.entire_set, test_size=test_size, shuffle=True, random_state=0)
 
     def data_process(self, poems):
         processed_data = []
