@@ -70,6 +70,8 @@ def callback():
     sents = generate(inputs)      #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
     # sents = ["帝高阳之苗裔兮","朕皇考曰伯约","摄提贞于孟陬兮","唯庚寅吾以降"]
     # text.delete('1.0','end')
+    sents = substitude(sents)
+    anotation = anotate(sents)    
     for sent in sents:
         text.insert(INSERT,sent)        
         text.insert(INSERT,'\n')  

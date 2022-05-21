@@ -11,6 +11,7 @@ from dataloader import Vocab
 
 
 def train_one_epoch(model, optimizer, train_loader, args, epoch):
+    torch.autograd.set_detect_anomaly(True)
     loss_f = nn.CrossEntropyLoss(ignore_index=config.Pad)
     model.train()
     total_loss = 0.0
@@ -27,7 +28,7 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
         # 计算梯度
         optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip) #梯度裁剪
+       # torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip) #梯度裁剪
         optimizer.step()
         # 每隔一定循环数输出loss,监控训练过程
         if i % log_step == 0 and i > 0:
@@ -88,6 +89,7 @@ def main():
     test_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=False)
     best_loss = float('inf')
     for epoch in range(args.epochs):
+        print(epoch,"hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh")
         epoch_start_time = time.time()
         train_one_epoch(model, optimizer, train_loader, args, epoch)
         val_loss = evaluate(model, test_loader, args)

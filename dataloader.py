@@ -1,12 +1,13 @@
 import torch
 from collections import Counter
 from sklearn.model_selection import train_test_split
+import tqdm
 maxlen = 10
 
 class vocab_load(object):
     def __init__(self,min_freq=2):
         counter = Counter()
-        with open(f'data/jueju.txt','r',encoding='tuf-8-fig') as f1:
+        with open(f'data/jueju.txt','r',encoding='utf-8-sig') as f1:
             for line in f1:
                 counter.update(line)
         with open(f'data/lvshi.txt','r',encoding='utf-8-sig') as f2:
@@ -16,14 +17,14 @@ class vocab_load(object):
             for line in f3:
                 counter.update(line)
         vocab = [k for k,v in counter.items() if v>min_freq]
-        self.comma = vocab.get("，")
-        self.dot = vocab.get("。")
         self.vocab_size = len(vocab) + 3
-        self.SOS = len(vocab) + 2
+        self.Sos = len(vocab) + 2
         self.Pad = len(vocab) + 1
         self.unkid = 0
         self.vocab = dict(zip(vocab, range(1, self.vocab_size-2)))
         self.inversed_vocab = dict(zip(range(1, self.vocab_size-2), vocab))
+        self.comma = self.vocab.get("，")
+        self.dot = self.vocab.get("。")
 Vocab = vocab_load()
 
 class PoemDataset(object):
@@ -46,13 +47,16 @@ class PoemDataset(object):
             for j,word in enumerate(poem):
                 if (word == '，') or (word == '。'): num_sent += 1
             numeric = torch.tensor([[Vocab.Pad]*maxlen]*num_sent)
+            #print (numeric.size(0))
+            if (i%500 == 0): print(i)
+            if (i>2000): break
             now = 0
             sent_id = 0
-            for word in enumerate(poem):
+            for word in poem:
+                numeric[sent_id][now] = self.vocab.vocab.get(word,0)
+                now+=1
                 if (word == '，') or (word == '。'): 
                     now = 0
                     sent_id += 1
-                numeric[sent_id][now] = self.vocab.get(word,0)
-                now+=1
             processed_data.append((numeric,numeric))
         return processed_data
