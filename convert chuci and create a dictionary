@@ -1,0 +1,43 @@
+def get_dic(list):
+    newdic={}
+    with open("dic.json",'r', encoding='utf-8-sig') as f:
+        for string in list:
+            dic = json.load(f)
+            for word in string:
+                if word in dic.keys() or zhconv.convert(word,'zh-hant') in dic.keys() :
+                    newdic[word] = dic[word]
+            # print(newdic)
+            # print(dic)
+            return newdic
+
+
+def get_real_chuci(list):
+    dic={}
+    with open("mywork/dic.json",'r',encoding='utf-8-sig') as f:
+        dic=json.load(f)
+    ll=[]
+    for line in list:
+        string=''
+        for word in line:
+            convert=[]
+            if word=='兮':
+                string+=word
+                continue
+            for k,v in dic.items():
+                if word==v:
+                    convert.append(k)
+            if len(convert)==0:
+                string+=word
+            else:
+                c=random.random()
+                if c>0.5:
+                    string+=word
+                else:
+                    num=len(convert)
+                    k=int(num*random.random())
+                    string+=convert[k]
+        ll.append(string)
+    # print(ll)
+    newdic=get_dic(ll)
+    return ll,newdic
+
