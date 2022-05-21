@@ -22,8 +22,8 @@ class vocab_load(object):
         self.SOS = len(vocab) + 2
         self.Pad = len(vocab) + 1
         self.unkid = 0
-        self.vocab = dict(zip(vocab, range(1, self.vocab_size-1)))
-        self.inversed_vocab = dict(zip(range(1, self.vocab_size-1), vocab))
+        self.vocab = dict(zip(vocab, range(1, self.vocab_size-2)))
+        self.inversed_vocab = dict(zip(range(1, self.vocab_size-2), vocab))
 Vocab = vocab_load()
 
 class PoemDataset(object):
@@ -45,7 +45,7 @@ class PoemDataset(object):
             num_sent = 0
             for j,word in enumerate(poem):
                 if (word == '，') or (word == '。'): num_sent += 1
-            numeric = torch.tensor([[Pad]*config.max_len]*num_sent)
+            numeric = torch.tensor([[Vocab.Pad]*maxlen]*num_sent)
             now = 0
             sent_id = 0
             for word in enumerate(poem):
