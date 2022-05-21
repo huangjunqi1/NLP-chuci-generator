@@ -16,19 +16,21 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
     model.train()
     total_loss = 0.0
     start_time = time.time()
-    log_step = 20
+    log_step = 1
     n_batch = len(train_loader)
-
+    #print(n_batch)
     for i,(input, target) in enumerate(train_loader):
+        #print(i,"hahahahaha")
         input, target = input.to(args.device), target.to(args.device)
         output, hidden = model(input, targets=target)
         # 计算loss
         loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
         total_loss += loss.item()
+        # print("asdfas")
         # 计算梯度
         optimizer.zero_grad()
         loss.backward()
-       # torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip) #梯度裁剪
+        torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip) #梯度裁剪
         optimizer.step()
         # 每隔一定循环数输出loss,监控训练过程
         if i % log_step == 0 and i > 0:
@@ -52,8 +54,8 @@ def evaluate(model, test_loader, args):
             input, target = input.to(args.device), target.to(args.device)
             output, hidden = model(input)
             loss = loss_f(output.view(-1, output.size(-1)), target.view(-1)) #拉成线？
-            total_loss += loss.item()
-            total_batch += 1
+            total_loss = total_loss + loss.item()
+            total_batch = total_batch + 1
 
     return total_loss / total_batch
 
@@ -89,7 +91,6 @@ def main():
     test_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=False)
     best_loss = float('inf')
     for epoch in range(args.epochs):
-        print(epoch,"hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh")
         epoch_start_time = time.time()
         train_one_epoch(model, optimizer, train_loader, args, epoch)
         val_loss = evaluate(model, test_loader, args)

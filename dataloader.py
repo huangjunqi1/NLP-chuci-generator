@@ -1,7 +1,6 @@
 import torch
 from collections import Counter
 from sklearn.model_selection import train_test_split
-import tqdm
 maxlen = 10
 
 class vocab_load(object):
@@ -45,7 +44,7 @@ class PoemDataset(object):
             poem = poem.strip()
             num_sent = 0
             for j,word in enumerate(poem):
-                if (word == '，') or (word == '。'): num_sent += 1
+                if (word == '，') or (word == '。'): num_sent = num_sent + 1
             numeric = torch.tensor([[Vocab.Pad]*maxlen]*num_sent)
             #print (numeric.size(0))
             if (i%500 == 0): print(i)
@@ -54,9 +53,9 @@ class PoemDataset(object):
             sent_id = 0
             for word in poem:
                 numeric[sent_id][now] = self.vocab.vocab.get(word,0)
-                now+=1
+                now = now + 1
                 if (word == '，') or (word == '。'): 
                     now = 0
-                    sent_id += 1
+                    sent_id = sent_id + 1
             processed_data.append((numeric,numeric))
         return processed_data

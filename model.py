@@ -15,10 +15,10 @@ Sos = config.Sos
 class Encoder(nn.Module):
     def __init__(self, voc_size, input_size, hidden_size,n_layers):
         super().__init__()
-        self.embedding = self.embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=input_size , padding_idx=Pad)
+        self.embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=input_size , padding_idx=Pad)
         self.n_layers = n_layers
         self.hidden_size = hidden_size
-        self.drop = config.drop
+        self.drop = nn.Dropout(0.5)
         self.lstm = nn.LSTM(
                 input_size = input_size,
                 hidden_size = hidden_size,
@@ -51,20 +51,19 @@ class S2SModel(nn.Module):
         outputs = torch.zeros(inputs.size(0),inputs.size(1),self.max_len,self.voc_size,device=inputs.device)
         enc_hidden = None
         enc_outputs = None
-        #key_padding_mask = torch.zeros(batch_size,self.max_len,dtype=torch.bool)
         Key_padding_mask = torch.zeros(batch_size,self.max_len+1,dtype=torch.bool)
-        enc_inputs = torch.zeros(batch_size,self.max_len+1,dtype = torch.long)
         for sent_id in range(num_sents):
             if (sent_id > 0):
                 enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
             input = torch.LongTensor([Sos]*batch_size)
-            enc_inputs = torch.zeros(inputs.size(0),self.max_len+1 , dtype = torch.long, device = inputs.device)
+            enc_inputs = torch.zeros(inputs.size(0),self.max_len+1, dtype = torch.long, device = inputs.device)
             enc_inputs[:,0] = input
             flag = []
             key_padding_mask = Key_padding_mask
             Key_padding_mask = torch.zeros(batch_size,self.max_len+1,dtype=torch.bool)
-            for i in range(batch_size): flag.append(0)
+            for i in range(batch_size): flag.append(False)
             for i in range(self.max_len):
+                if i==0: continue
                 #if (hidden == None): print(enc_outputs)
                 output,hidden = self.decoder(key_padding_mask,input.unsqueeze(1),hidden,enc_outputs)
                 outputs[:,sent_id,i,:] = output[:,0,:]
@@ -72,15 +71,11 @@ class S2SModel(nn.Module):
                 else:
                     input = (targets[:,sent_id,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2).squeeze(1))
                 for j in range(batch_size):
-                    if (flag[j]) :
-                        input[j] = Pad
+                    if (input[j].item() == Eos1 or input[j].item() == Eos2): flag[j] = True
+                    if (flag[j]):
                         Key_padding_mask[j][i+1] = True
-                    if (input[j].item() == Eos1 or input[j].item() == Eos2): 
-                        flag[j] = 1
-            #    print(input.size())
-            #    print(enc_inputs.size())
-                enc_inputs[:,i+1] = input
-            # output,hidden = self.decoder(key_padding_mask,input.unsqueeze(1),hidden,enc_outputs) 
+                        
+                enc_inputs[:,i+1] = input 
         return outputs,hidden
 
 class Attention(nn.Module):
@@ -93,18 +88,18 @@ class Attention(nn.Module):
         # energy: batch_sz * maxlen * hidden_sz
         energy = torch.tanh(self.atten(torch.cat([dec_hidden,enc_outputs],dim=2)))
         #print(energy)
-        scores = self.v(energy).squeeze(2)
+        score = self.v(energy).squeeze(2).masked_fill(key_padding_mask,-1e9)
         # score: batch_sz * maxlen
-        score = scores.masked_fill(key_padding_mask,-1e9)
+        #score = scores.masked_fill(key_padding_mask,-1e9)
         #print(score.size())
         
-        return torch.softmax(score,1)
+        return torch.softmax(score,dim=1)
 
 class AttentionDecoder(nn.Module):
     def __init__(self,voc_size,input_size,enc_output_size,hidden_size,n_layers):
         super().__init__()
         self.embedding = nn.Embedding(num_embeddings=voc_size,embedding_dim=input_size,padding_idx = Pad)
-        self.drop = config.drop
+        self.drop = nn.Dropout(0.5)
         self.enc_output_size = enc_output_size
         self.lstm = nn.LSTM(
                 input_size = input_size + enc_output_size,
@@ -115,16 +110,14 @@ class AttentionDecoder(nn.Module):
         self.attention = Attention(enc_output_size,hidden_size)
         self.layer_norm = nn.LayerNorm(hidden_size)
         self.fc = nn.Linear(hidden_size,voc_size)
+
     def forward(self,key_padding_mask,input,dec_hidden = None, enc_outputs = None):
-        if (len(input.size())==1): input.unsqueeze_(1)
+        if len(input.size())==1: 
+            input.unsqueeze_(1)
         embedding = self.embedding(input)
         embedding = self.drop(embedding)
         if enc_outputs is not None:
-            # a: batch_sz * maxlen
-            # dec_hidden: 2 * num_layers * batch_sz * hidden_sz
-            # print(dec_hidden)
             a = self.attention(dec_hidden[0][-1],enc_outputs,key_padding_mask)
-            # context : batch_sz * 1 * enc_hidden_sz
             context = a.unsqueeze(1) @ enc_outputs
         else:
             context = torch.zeros(embedding.size(0),1,self.enc_output_size,device=embedding.device)
@@ -132,5 +125,6 @@ class AttentionDecoder(nn.Module):
         output = self.layer_norm(output)
         output = self.drop(output)
         output = self.fc(output)
+
         return output,dec_hidden
 
