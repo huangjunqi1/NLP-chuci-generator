@@ -1,47 +1,9 @@
 from tkinter import *
 from PIL import Image,ImageTk
-from tkinter import scrolledtext     
+from tkinter import scrolledtext    
+from following_process import * 
+from dataloader import Vocab
 sent_num = 20
-
-def generate(inputs):
-    # inputs: batch_size*num_sents*max_len    
-    #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
-    import torch
-    import config
-    from webbrowser import get
-    from model import S2SModel
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model_path = f'checkpoints/{args.dataset}_{args.model}_best_model.pt'
-    ckpt = torch.load(model_path)
-    vocab = ckpt['vocab']
-    inversed_vocab = ckpt['inversed_vcaob']
-    # 建立模型
-    input_size = 300
-    hidden_size = 512
-    n_layers = 2
-    model = S2SModel(
-        voc_size=len(vocab) + 1,
-        input_size=input_size,
-        hidden_size=hidden_size,
-        n_layers=n_layers,
-    )
-    # 加载保存的参数到模型当中
-    model.load_state_dict(ckpt['model'])
-    model = model.to(device) 
-    outputs,hidden = model(inputs, teacher_force_ratio=0)
-    sents=[]
-    sent =''
-    for i in range(sent_num):
-        for j in range(0,config.max_len): #从第二个字到标点
-            possiblity = outputs[0,i,j,:]            
-            value,index = torch.topk(possiblity,5)
-            word = inversed_vocab[index[0].item()]
-            sent = sent + word
-        sents.append(sent)
-        sent = ''
-    return sents
-            
-
 
 root=Tk()
 root.geometry("400x700+600+30")#宽乘以高加上水平偏移量加上垂直偏移量
@@ -61,20 +23,21 @@ entry =Entry(root ,font=("华文行楷",15),textvariable=data)#创建labal组件
 def callback():
     import torch
     import config
-    vocab = {}
-    inputs = torch.zeros(1,sent_num,config.max_len)
+    inputs = torch.tensor([[Vocab.Pad]*config.max_len]*sent_num).unsqueeze(0)
     for i,word in enumerate(data.get()):
-        inputs[0,0,i] = vocab[word]
-    for i in range(len(data.get()),config.max_len):
-        inputs[0,0,i] = config.Pad 
-    sents = generate(inputs)      #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
+        inputs[0,0,i] = Vocab.vocab[word] if word in Vocab.vocab else 0
+    inputs[0,0,len(data.get())] = Vocab.vocab['，']
+    sents,annotations = generate(inputs)      #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
     # sents = ["帝高阳之苗裔兮","朕皇考曰伯约","摄提贞于孟陬兮","唯庚寅吾以降"]
-    # text.delete('1.0','end')
-    sents = substitude(sents)
-    anotation = anotate(sents)    
+    text.delete('1.0','end')   
     for sent in sents:
         text.insert(INSERT,sent)        
-        text.insert(INSERT,'\n')  
+        text.insert(INSERT,'\n') 
+    for k,v in annotations.items():
+        text.insert(INSERT,k)
+        text.insert(INSERT,'：')
+        text.insert(INSERT,v)
+        text.insert(INSERT,'\n') 
     text.update()
     
 button=Button(root,text='开始生成',font=("华文行楷",15),command=callback)

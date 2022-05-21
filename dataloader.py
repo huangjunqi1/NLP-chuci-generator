@@ -36,7 +36,7 @@ class PoemDataset(object):
         
         self.vocab=Vocab
         self.entire_set = self.data_process(all_sents)
-        self.train_set, self.test_set = train_test_split(self.entire_set, test_size=test_size, shuffle=True, random_state=0)
+        self.train_set, self.test_set = train_test_split(self.entire_set, test_size=test_size, shuffle=False, random_state=0)
 
     def data_process(self, poems):
         processed_data = []
@@ -48,7 +48,6 @@ class PoemDataset(object):
             numeric = torch.tensor([[Vocab.Pad]*maxlen]*num_sent)
             #print (numeric.size(0))
             if (i%500 == 0): print(i)
-            if (i>2000): break
             now = 0
             sent_id = 0
             for word in poem:
