@@ -59,6 +59,7 @@ class S2SModel(nn.Module):
                 for i in range(batch_size):
                     for j in range(self.max_len):
                         if (inputs[i][0][j].item()==Pad): key_padding_mask[i][j] = True
+                        outputs[i][sent_id][j][inputs[i][0][j].item()] = 1.0
                 continue
             enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
             input = torch.LongTensor([Sos]*batch_size)
