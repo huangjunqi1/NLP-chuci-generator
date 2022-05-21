@@ -59,7 +59,7 @@ def evaluate(model, test_loader, args):
 # Main
 def main():
     parser = ArgumentParser()  #命令行参数
-    parser.add_argument("--dataset", default="wuyanlvshi", type=str)
+    parser.add_argument("--dataset", default="chuci", type=str)
     parser.add_argument("--batch_size", default=64, type=int)
     parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--lr", default=0.001, type=float)
