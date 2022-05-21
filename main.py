@@ -18,13 +18,15 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
     start_time = time.time()
     log_step = 2
     n_batch = len(train_loader)
-
+    #print(n_batch)
     for i,(input, target) in enumerate(train_loader):
+        #print(i,"hahahahaha")
         input, target = input.to(args.device), target.to(args.device)
         output, hidden = model(input, targets=target)
         # 计算loss
         loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
         total_loss =total_loss + loss.item()
+        total_loss += loss.item()
         # 计算梯度
         optimizer.zero_grad()
         loss.backward()
@@ -32,13 +34,13 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
         optimizer.step()
         # 每隔一定循环数输出loss,监控训练过程
         if i % log_step == 0 and i > 0:
-        avg_loss = total_loss / log_step
-        elapse = time.time() - start_time
-        print('| epoch {:3d} | batch {:3d}/{:3d} | {:5.2f} ms/batch | loss {:5.2f} |'.format(
-            epoch, i, n_batch, elapse * 1000 / log_step, avg_loss
-        ))
-        start_time = time.time()
-        total_loss = 0.0
+            avg_loss = total_loss / log_step
+            elapse = time.time() - start_time
+            print('| epoch {:3d} | batch {:3d}/{:3d} | {:5.2f} ms/batch | loss {:5.2f} |'.format(
+                epoch, i, n_batch, elapse * 1000 / log_step, avg_loss
+            ))
+            start_time = time.time()
+            total_loss = 0.0
 
 
 def evaluate(model, test_loader, args):
@@ -52,8 +54,8 @@ def evaluate(model, test_loader, args):
             input, target = input.to(args.device), target.to(args.device)
             output, hidden = model(input)
             loss = loss_f(output.view(-1, output.size(-1)), target.view(-1)) #拉成线？
-            total_loss += loss.item()
-            total_batch += 1
+            total_loss = total_loss + loss.item()
+            total_batch = total_batch + 1
 
     return total_loss / total_batch
 
