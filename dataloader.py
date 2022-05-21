@@ -22,8 +22,8 @@ class vocab_load(object):
         self.SOS = len(vocab) + 2
         self.Pad = len(vocab) + 1
         self.unkid = 0
-        self.vocab = dict(zip(vocab, range(1, self.vocab_size-1)))
-        self.inversed_vocab = dict(zip(range(1, self.vocab_size-1), vocab))
+        self.vocab = dict(zip(vocab, range(1, self.vocab_size-2)))
+        self.inversed_vocab = dict(zip(range(1, self.vocab_size-2), vocab))
 Vocab = vocab_load()
 
 class PoemDataset(object):
