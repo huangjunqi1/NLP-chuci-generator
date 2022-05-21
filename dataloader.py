@@ -45,7 +45,7 @@ class PoemDataset(object):
             num_sent = 0
             for j,word in enumerate(poem):
                 if (word == '，') or (word == '。'): num_sent += 1
-            numeric = torch.tensor([[Pad]*config.max_len]*num_sent)
+            numeric = torch.tensor([[Vocab.Pad]*maxlen]*num_sent)
             now = 0
             sent_id = 0
             for word in enumerate(poem):
