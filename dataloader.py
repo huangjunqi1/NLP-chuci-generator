@@ -2,7 +2,7 @@ import torch
 from collections import Counter
 from sklearn.model_selection import train_test_split
 maxlen = 10
-import config
+
 class vocab_load(object):
     def __init__(self,min_freq=2):
         counter = Counter()
