@@ -7,6 +7,7 @@ from dataloader import PoemDataset
 from model import S2SModel
 import time
 from torch.utils.data import DataLoader
+from dataloader import Vocab
 
 
 def train_one_epoch(model, optimizer, train_loader, args, epoch):
@@ -49,7 +50,7 @@ def evaluate(model, test_loader, args):
         for input, target in test_loader:
             input, target = input.to(args.device), target.to(args.device)
             output, hidden = model(input)
-            loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
+            loss = loss_f(output.view(-1, output.size(-1)), target.view(-1)) #拉成线？
             total_loss += loss.item()
             total_batch += 1
 
@@ -59,7 +60,7 @@ def evaluate(model, test_loader, args):
 # Main
 def main():
     parser = ArgumentParser()  #命令行参数
-    parser.add_argument("--dataset", default="wuyanlvshi", type=str)
+    parser.add_argument("--dataset", default="lvshi", type=str)
     parser.add_argument("--batch_size", default=64, type=int)
     parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--lr", default=0.001, type=float)
@@ -76,7 +77,7 @@ def main():
     dataset = PoemDataset(data_path)
 
     model = S2SModel(
-        voc_size=dataset.vocab_size,
+        voc_size=Vocab.vocab_size,
         input_size=args.input_size,
         hidden_size=args.hidden_size,
         n_layers=args.n_layers,
@@ -84,8 +85,7 @@ def main():
     model = model.to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     train_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=True) #打包成batch
-    test_loader = DataLoader(dataset.test_set, batch_size=args.batch_size, shuffle=False)
-
+    test_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=False)
     best_loss = float('inf')
     for epoch in range(args.epochs):
         epoch_start_time = time.time()
@@ -100,15 +100,9 @@ def main():
         if val_loss < best_loss:
             best_loss = val_loss
             torch.save({'model': model.state_dict(),
-                        'vocab': dataset.vocab,
-                        'inversed_vocab': dataset.inversed_vocab},    
+                        'vocab': Vocab.vocab,
+                        'inversed_vocab': Vocab.inversed_vocab},    
                        f'checkpoints/{args.dataset}_best_model.pt')
-
-    torch.save({'model': model.state_dict(),
-                'vocab': dataset.vocab,
-                'inversed_vocab': dataset.inversed_vocab},
-               f'checkpoints/{args.dataset}_final_model.pt')
-
 
 if __name__ == '__main__':
     main()
