@@ -64,18 +64,25 @@ class S2SModel(nn.Module):
             for i in range(batch_size): flag.append(False)
             for i in range(self.max_len):
                 if i==0: continue
-                #if (hidden == None): print(enc_outputs)
-                output,hidden = self.decoder(key_padding_mask,input.unsqueeze(1),hidden,enc_outputs)
+                output,hidden = self.decoder(key_padding_mask.detach(),input.unsqueeze(1),hidden,enc_outputs)
                 outputs[:,sent_id,i,:] = output[:,0,:]
                 if (sent_id == 0): input = inputs[:,0,i]
                 else:
                     input = (targets[:,sent_id,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2).squeeze(1))
-                for j in range(batch_size):
-                    if (input[j].item() == Eos1 or input[j].item() == Eos2): flag[j] = True
-                    if (flag[j]):
-                        Key_padding_mask[j][i+1] = True
-                        
-                enc_inputs[:,i+1] = input 
+                enc_inputs[:,i+1] = input
+                #for j in range(batch_size):
+                #    if (flag[j]):
+                #        Key_padding_mask[j][i+1] = True
+                #    if (input[j].item() == Eos1 or input[j].item() == Eos2): flag[j] = True
+                    
+            for i in range(batch_size):
+                for j in range(self.max_len + 1):
+                    if (flag[i]):
+                        Key_padding_mask[i][j] = True
+                    if enc_inputs[i][j] == Eos1 or enc_inputs[i][j] == Eos2:
+                        flag[i] = True
+                    
+                
         return outputs,hidden
 
 class Attention(nn.Module):
