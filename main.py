@@ -12,7 +12,7 @@ from dataloader import Vocab
 torch.autograd.set_detect_anomaly(True)
 def train_one_epoch(model, optimizer, train_loader, args, epoch):
 
-    loss_f = nn.CrossEntropyLoss()#ignore_index=config.Pad)
+    loss_f = nn.CrossEntropyLoss(ignore_index=config.Pad)
     model.train()
     total_loss = 0.0
     start_time = time.time()
@@ -87,7 +87,7 @@ def main():
     )
     if(args.model != None):
         model_path = f'checkpoints/{args.model}_best_model.pt'
-        ckpt = torch.load(model_path)
+        ckpt = torch.load(model_path,map_location=args.device)
         model.load_state_dict(ckpt['model'])
     model = model.to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
