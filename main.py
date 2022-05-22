@@ -87,7 +87,7 @@ def main():
     )
     if(args.model != None):
         model_path = f'checkpoints/{args.model}_best_model.pt'
-        ckpt = torch.load(model_path)
+        ckpt = torch.load(model_path,map_location=args.device)
         model.load_state_dict(ckpt['model'])
     model = model.to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)

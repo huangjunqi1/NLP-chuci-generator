@@ -3,7 +3,7 @@ from PIL import Image,ImageTk
 from tkinter import scrolledtext    
 from following_process import * 
 from dataloader import Vocab
-sent_num = 20
+sent_num = 10
 
 root=Tk()
 root.geometry("400x700+600+30")#宽乘以高加上水平偏移量加上垂直偏移量
@@ -27,7 +27,7 @@ def callback():
     for i,word in enumerate(data.get()):
         inputs[0,0,i] = Vocab.vocab[word] if word in Vocab.vocab else 0
     inputs[0,0,len(data.get())] = Vocab.vocab['，']
-    sents,annotations = generate(inputs)      #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
+    sents,annotations = generate(data.get(),inputs)      #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
     # sents = ["帝高阳之苗裔兮","朕皇考曰伯约","摄提贞于孟陬兮","唯庚寅吾以降"]
     text.delete('1.0','end')   
     for sent in sents:

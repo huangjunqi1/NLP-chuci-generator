@@ -10,13 +10,16 @@ import numpy as np
 import copy
 def get_dic(list):
     newdic={}
-    with open("data/dic.json",'r', encoding='utf-8-sig') as f:
+    print(list)
+    with open("data/dic1.json",'r', encoding='utf-8-sig') as f:
+        dic = json.load(f)        
         for string in list:
-            dic = json.load(f)
+            print(string)
             for word in string:
-                if word in dic.keys() or zhconv.convert(word,'zh-hant') in dic.keys() :
+                if word in dic or zhconv.convert(word,'zh-hant') in dic :
+                    if(word=='向'): continue
                     newdic[word] = dic[word]
-            return newdic
+    return newdic
 
 
 def get_real_chuci(list):
@@ -46,10 +49,11 @@ def get_real_chuci(list):
                     k=int(num*random.random())
                     string+=convert[k]
         ll.append(string)
+ #   print(ll)
     newdic=get_dic(ll)
     return ll,newdic
 
-def generate(inputs):
+def generate(raw_input,inputs):
     # inputs: batch_size*num_sents*max_len    
     #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -74,16 +78,26 @@ def generate(inputs):
     outputs,hidden = model(inputs, teacher_force_ratio=0)
     sents=[]
     sent =''
-    for i in range(inputs.size(1)):
+    sents.append(raw_input+',')
+    for i in range(1,inputs.size(1)):
         for j in range(0,config.max_len): #从第二个字到标点
             possiblity = outputs[0,i,j,:]            
             value,index = torch.topk(possiblity,5)
             if(index[0].item() == Vocab.vocab['，'] or index[0].item() ==  Vocab.vocab['。']): break
-            word = inversed_vocab[index[0].item()]
+            if(index[0].item() == 0 or index[0].item() == Vocab.vocab['不'] or index[0].item() == Vocab.vocab['有']):
+                word = inversed_vocab[index[1].item()]
+            else:
+                word = inversed_vocab[index[0].item()]
             print(word)
             sent = sent + word
         sent += '，'if i%2 == 0 else '。'
         sents.append(copy.deepcopy(sent))
         sent = ''
-        sents,annotations = get_real_chuci(sents)       
+    sents,annotations = get_real_chuci(sents)
+    print(annotations)       
     return sents,annotations
+
+# with open("data/dic.json",'r', encoding='utf-8-sig') as f:
+#     dic = json.load(f)
+#     dicc=np.load('data/dict.npy', allow_pickle=True).item()
+#     print('岪' in dic,'逴' in dicc)
