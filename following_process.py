@@ -58,7 +58,7 @@ def generate(inputs):
     #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model_path = 'checkpoints\lvshi_best_model.pt'#f'checkpoints/{args.dataset}_{args.model}_best_model.pt'
-    ckpt = torch.load(model_path)
+    ckpt = torch.load(model_path,map_location=device)
     vocab = ckpt['vocab']
     inversed_vocab = ckpt['inversed_vocab']
     # 建立模型
