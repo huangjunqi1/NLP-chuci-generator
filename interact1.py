@@ -10,7 +10,7 @@ import config
 #args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_path = 'checkpoints\lvshi_best_model.pt'
+model_path = 'checkpoints/lvshi_best_model.pt'
 # 读取模型参数和词表
 ckpt = torch.load(model_path,map_location=device)
 vocab = Vocab.vocab
@@ -34,12 +34,7 @@ n_sents = 10
 
 while True:
     model.eval()
-    # 读取藏头诗的头
     first_sent = input("Input first sent")
-    #heads = input('Input heads: ')
-    #if len(heads) != n_sents:
-    #    print('Invalid input length')
-    #    continue
     flag = False
     for word in first_sent:
         if word not in vocab:
@@ -49,7 +44,7 @@ while True:
         continue
     un_kid = 0
     with torch.no_grad():
-        inputv = torch.zeros(1,n_sents,config.max_len,dtype=torch.long)
+        inputv = torch.zeros(1,n_sents,config.max_len,dtype=torch.long,device = device)
         for i in range(n_sents):
             for j in range(config.max_len):
                 inputv[0][i][j] = config.Pad
@@ -59,10 +54,11 @@ while True:
             tokenid.append(vocab.get(word))
             inputv[0][0][ii] = tokenid[ii]
             ii = ii + 1
+        inputv[0][0][ii] = vocab.get("，")
         inputv.to(device)
         outputs,hidden = model(inputv)
         for i in range(n_sents):
-            ans = 
+            ans = ''
             for j in range(config.max_len):
                 tmp1,tmp2 = torch.topk(outputs[0][i][j],2)
                 tt = tmp2[0].item()

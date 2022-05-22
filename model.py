@@ -48,40 +48,33 @@ class S2SModel(nn.Module):
         # inputs: batch_size*num_sents*max_len
         num_sents = inputs.size(1)
         batch_size = inputs.size(0)
-        outputs = torch.zeros(inputs.size(0),inputs.size(1),self.max_len,self.voc_size,device=inputs.device)
+        outputs = torch.zeros(batch_size,num_sents,self.max_len,self.voc_size,device=inputs.device)
         enc_hidden = None
         enc_outputs = None
-        Key_padding_mask = torch.zeros(batch_size,self.max_len+1,dtype=torch.bool,device = inputs.device)
+        Key_padding_mask = torch.zeros(batch_size,self.max_len,dtype=torch.bool,device = inputs.device)
         for sent_id in range(num_sents):
             if (sent_id > 0):
                 enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
             input = torch.LongTensor([Sos]*batch_size)
             input = input.to(inputs.device)
-            enc_inputs = torch.zeros(inputs.size(0),self.max_len+1, dtype = torch.long, device = inputs.device)
-            enc_inputs[:,0] = input
+            enc_inputs = torch.zeros(inputs.size(0),self.max_len, dtype = torch.long, device = inputs.device)
+            #enc_inputs[:,0] = input
             flag = []
             key_padding_mask = Key_padding_mask
-            Key_padding_mask = torch.zeros(batch_size,self.max_len+1,dtype=torch.bool,device = inputs.device)
+            Key_padding_mask = torch.zeros(batch_size,self.max_len,dtype=torch.bool,device = inputs.device)
             for i in range(batch_size): flag.append(False)
             for i in range(self.max_len):
-                if i==0: continue
+                #f i==0: continue
                 output,hidden = self.decoder(key_padding_mask.detach(),input.unsqueeze(1),hidden,enc_outputs)
                 outputs[:,sent_id,i,:] = output[:,0,:]
                 if (sent_id == 0): input = inputs[:,0,i]
                 else:
                     input = (targets[:,sent_id,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2).squeeze(1))
-                enc_inputs[:,i+1] = input
+                enc_inputs[:,i] = input
                 for j in range(batch_size):
                     if (flag[j]):
-                        Key_padding_mask[j][i+1] = True
+                        Key_padding_mask[j][i] = True
                     if (input[j].item() == Eos1 or input[j].item() == Eos2): flag[j] = True
-                    
-            #for i in range(batch_size):
-            #    for j in range(self.max_len + 1):
-            #        if (flag[i]):
-            #            Key_padding_mask[i][j] = True
-            #        if enc_inputs[i][j] == Eos1 or enc_inputs[i][j] == Eos2:
-            #            flag[i] = True
                     
                 
         return outputs,hidden
