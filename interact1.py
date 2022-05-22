@@ -30,7 +30,7 @@ model = S2SModel(
 model.load_state_dict(ckpt['model'])
 model = model.to(device)
 # 设置生成的诗句数量和长度
-n_sents = 10
+n_sents = 8
 
 while True:
     model.eval()
@@ -57,7 +57,8 @@ while True:
         inputv[0][0][ii] = vocab.get("，")
         inputv.to(device)
         outputs,hidden = model(inputv)
-        for i in range(n_sents):
+        print(first_sent,",")
+        for i in range(1,n_sents):
             ans = ''
             for j in range(config.max_len):
                 tmp1,tmp2 = torch.topk(outputs[0][i][j],2)
