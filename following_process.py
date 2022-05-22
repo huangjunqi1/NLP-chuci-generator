@@ -10,15 +10,13 @@ import numpy as np
 import copy
 def get_dic(list):
     newdic={}
-    # with open("data/dict.npy",'r', encoding='utf-8-sig') as f:
-    dic=np.load('data/dict.npy', allow_pickle=True).item()
-    for string in list:
-        for word in string:
-            if word in dic.keys() or zhconv.convert(word,'zh-hant') in dic.keys() :
-                newdic[word] = dic[word]
-        # print(newdic)
-        # print(dic)
-        return newdic
+    with open("data/dic.json",'r', encoding='utf-8-sig') as f:
+        for string in list:
+            dic = json.load(f)
+            for word in string:
+                if word in dic.keys() or zhconv.convert(word,'zh-hant') in dic.keys() :
+                    newdic[word] = dic[word]
+            return newdic
 
 
 def get_real_chuci(list):
@@ -41,19 +39,17 @@ def get_real_chuci(list):
                 string+=word
             else:
                 c=random.random()
-                if c>0.8:
+                if c>0.4:
                     string+=word
                 else:
                     num=len(convert)
                     k=int(num*random.random())
                     string+=convert[k]
         ll.append(string)
-    # print(ll)
     newdic=get_dic(ll)
     return ll,newdic
 
 def generate(inputs):
-    # print(Vocab.vocab['，'],Vocab.vocab['。'])
     # inputs: batch_size*num_sents*max_len    
     #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

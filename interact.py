@@ -41,7 +41,7 @@ def callback():
     text.update()
     
 button=Button(root,text='开始生成',font=("华文行楷",15),command=callback)
-text =scrolledtext.ScrolledText(root,width=25,height=20,font=("华文行楷",20))#,bg='azure') 
+text =scrolledtext.ScrolledText(root,width=25,height=20,font=("",16))#,bg='azure') 
 can.create_window(200, 30, width = 150, height=40,window=label)
 can.create_window(200, 70, width = 250, height=35,window=entry)
 can.create_window(200, 115, width = 100, height=40,window=button)

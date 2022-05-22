@@ -68,7 +68,7 @@ def main():
     parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--lr", default=0.001, type=float)
     parser.add_argument("--grad_clip", default=0.1, type=float)
-
+    parser.add_argument("--model",default=None,type = str)
     parser.add_argument("--input_size", default=300, type=int)
     parser.add_argument("--hidden_size", default=512, type=int)
     parser.add_argument("--n_layers", default=2, type=int)
@@ -85,6 +85,10 @@ def main():
         hidden_size=args.hidden_size,
         n_layers=args.n_layers,
     )
+    if(args.model != None):
+        model_path = f'checkpoints/{args.model}_best_model.pt'
+        ckpt = torch.load(model_path)
+        model.load_state_dict(ckpt['model'])
     model = model.to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     train_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=True) #打包成batch
