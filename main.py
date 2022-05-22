@@ -12,7 +12,7 @@ from dataloader import Vocab
 torch.autograd.set_detect_anomaly(True)
 def train_one_epoch(model, optimizer, train_loader, args, epoch):
 
-    loss_f = nn.CrossEntropyLoss()#ignore_index=config.Pad)
+    loss_f = nn.CrossEntropyLoss(ignore_index=config.Pad)
     model.train()
     total_loss = 0.0
     start_time = time.time()
