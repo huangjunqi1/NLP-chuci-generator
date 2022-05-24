@@ -4,13 +4,14 @@ from model import S2SModel
 from dataloader import Vocab
 import config
 
-#parser = ArgumentParser()
-#parser.add_argument("--dataset", default="wuyanlvshi", type=str)
+parser = ArgumentParser()
+parser.add_argument("--dataset", default="lvshi", type=str)
 #parser.add_argument("--model", default="simple", type=str)
-#args = parser.parse_args()
+parser.add_argument("--sentsnum",default=10,type=int)
+args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_path = 'checkpoints/lvshi_best_model.pt'
+model_path = f'checkpoints/{args.dataset}_best_model.pt'
 # 读取模型参数和词表
 ckpt = torch.load(model_path,map_location=device)
 vocab = Vocab.vocab
@@ -30,7 +31,7 @@ model = S2SModel(
 model.load_state_dict(ckpt['model'])
 model = model.to(device)
 # 设置生成的诗句数量和长度
-n_sents = 8
+n_sents = args.sentsnum
 
 while True:
     model.eval()

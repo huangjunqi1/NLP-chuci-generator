@@ -23,6 +23,7 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
         #print(i,"hahahahaha")
         input, target = input.to(args.device), target.to(args.device)
         output, hidden = model(input, targets=target)
+        #print(i,"hahahahaha")
         # 计算loss
         loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
         total_loss =total_loss + loss.item()
@@ -87,12 +88,13 @@ def main():
     )
     if(args.model != None):
         model_path = f'checkpoints/{args.model}_best_model.pt'
-        ckpt = torch.load(model_path,map_location=args.device)
+        ckpt = torch.load(model_path)
         model.load_state_dict(ckpt['model'])
     model = model.to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    train_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=True) #打包成batch
-    test_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=False)
+    #print(len(dataset.train_set))
+    train_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(dataset.test_set, batch_size=args.batch_size, shuffle=False)
     best_loss = float('inf')
     for epoch in range(args.epochs):
         epoch_start_time = time.time()
