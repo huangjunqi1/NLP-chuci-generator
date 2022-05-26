@@ -27,7 +27,6 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
         # 计算loss
         loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
         total_loss =total_loss + loss.item()
-        total_loss += loss.item()
         # 计算梯度
         optimizer.zero_grad()
         loss.backward()
