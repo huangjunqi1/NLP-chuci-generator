@@ -28,12 +28,10 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
         loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
         total_loss =total_loss + loss.item()
         #total_loss += loss.item()
-        # 计算梯度
         optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip) #梯度裁剪
         optimizer.step()
-        # 每隔一定循环数输出loss,监控训练过程
         if i % log_step == 0 and i > 0:
             avg_loss = total_loss / log_step
             elapse = time.time() - start_time
@@ -46,7 +44,7 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
 
 def evaluate(model, test_loader, args):
     loss_f = nn.CrossEntropyLoss(ignore_index=config.Pad)
-    model.eval() #进入测试模式，停止更新参数与dropout
+    model.eval() 
     total_loss = 0.0
     total_batch = 0
 
