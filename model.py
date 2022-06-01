@@ -10,8 +10,14 @@ Pad = config.Pad
 Eos1 = config.comma
 Eos2 = config.dot
 Sos = config.Sos
-#key_padding_mask: True if padding,Flase if not padding
+#key_padding_mask: True if padding,False if not padding
 
+#need to modify 
+#teacher_for_ratio
+#lr
+#dropout
+#enc_hidden be the first sentence when the 5th sentence
+#every one day
 class Encoder(nn.Module):
     def __init__(self, voc_size, input_size, hidden_size,n_layers):
         super().__init__()
@@ -45,20 +51,20 @@ class S2SModel(nn.Module):
         self.encoder = Encoder(self.voc_size,input_size,hidden_size,n_layers)
         self.decoder = AttentionDecoder(self.voc_size,input_size,hidden_size,hidden_size,n_layers)
     def forward(self,inputs,hidden=None,targets=None,teacher_force_ratio=config.teacher_for_ratio):
-        # inputs: batch_size*num_sents*max_len
         num_sents = inputs.size(1)
         batch_size = inputs.size(0)
-        outputs = torch.zeros(batch_size,num_sents,self.max_len,self.voc_size,device=inputs.device)
+        outputs = torch.zeros(batch_size,num_sents-1,self.max_len,self.voc_size,device=inputs.device)
         enc_hidden = None
         enc_outputs = None
         Key_padding_mask = torch.zeros(batch_size,self.max_len,dtype=torch.bool,device = inputs.device)
         for sent_id in range(num_sents):
+            if (sent_id == 4):
+                enc_inputs = enc_input0
             if (sent_id > 0):
                 enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
             input = torch.LongTensor([Sos]*batch_size)
             input = input.to(inputs.device)
             enc_inputs = torch.zeros(inputs.size(0),self.max_len, dtype = torch.long, device = inputs.device)
-            #enc_inputs[:,0] = input
             flag = []
             key_padding_mask = Key_padding_mask
             Key_padding_mask = torch.zeros(batch_size,self.max_len,dtype=torch.bool,device = inputs.device)
@@ -66,16 +72,18 @@ class S2SModel(nn.Module):
             for i in range(self.max_len):
                 #f i==0: continue
                 output,hidden = self.decoder(key_padding_mask.detach(),input.unsqueeze(1),hidden,enc_outputs)
-                outputs[:,sent_id,i,:] = output[:,0,:]
+                if (sent_id > 0): outputs[:,sent_id-1,i,:] = output[:,0,:]
                 if (sent_id == 0): input = inputs[:,0,i]
                 else:
-                    input = (targets[:,sent_id,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2).squeeze(1))
+                    input = (targets[:,sent_id-1,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2).squeeze(1))
                 enc_inputs[:,i] = input
                 for j in range(batch_size):
                     if (flag[j]):
                         Key_padding_mask[j][i] = True
                     if (input[j].item() == Eos1 or input[j].item() == Eos2): flag[j] = True
-                    
+            if (sent_id == 0): 
+                #enc_hidden0 = enc_hidden
+                enc_input0 = enc_inputs
                 
         return outputs,hidden
 
@@ -89,7 +97,8 @@ class Attention(nn.Module):
         # energy: batch_sz * maxlen * hidden_sz
         energy = torch.tanh(self.atten(torch.cat([dec_hidden,enc_outputs],dim=2)))
         #print(energy)
-        score = self.v(energy).squeeze(2).masked_fill(key_padding_mask,-1e9)
+        scores = self.v(energy).squeeze(2)
+        score = scores.masked_fill(key_padding_mask,-1e9)
         # score: batch_sz * maxlen
         #score = scores.masked_fill(key_padding_mask,-1e9)
         #print(score.size())

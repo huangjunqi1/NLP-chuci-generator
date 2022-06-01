@@ -1,6 +1,7 @@
 import torch
 from collections import Counter
 from sklearn.model_selection import train_test_split
+import random
 maxlen = 10
 
 class vocab_load(object):
@@ -27,7 +28,7 @@ class vocab_load(object):
 Vocab = vocab_load()
 
 class PoemDataset(object):
-    def __init__(self, data_path, test_size=0.1):
+    def __init__(self, data_path):
         all_sents = []
 
         with open(data_path, 'r', encoding='utf-8-sig') as f:
@@ -36,7 +37,8 @@ class PoemDataset(object):
         
         self.vocab=Vocab
         self.entire_set = self.data_process(all_sents)
-        self.train_set, self.test_set = train_test_split(self.entire_set, test_size=test_size, shuffle=True, random_state=0)
+        self.train_set, self.test_set = train_test_split(self.entire_set, test_size=0.1, shuffle=True, random_state=0)
+        #self.test_set = concat(self.train_set,self.test_set)
 
     def data_process(self, poems):
         processed_data = []
@@ -47,8 +49,8 @@ class PoemDataset(object):
                 if (word == '，') or (word == '。'): num_sent = num_sent + 1
             numeric = torch.tensor([[Vocab.Pad]*maxlen]*num_sent)
             #print (numeric.size(0))
-            if (i%500 == 0): print(i)
-            #if (i>=10000): break
+            #if (i%500 == 0): print(i)
+            if (i>=18000): break
             now = 0
             sent_id = 0
             for word in poem:
@@ -57,5 +59,6 @@ class PoemDataset(object):
                 if (word == '，') or (word == '。'): 
                     now = 0
                     sent_id = sent_id + 1
-            processed_data.append((numeric,numeric))
-        return processed_data
+            processed_data.append((numeric,numeric[1:,:]))
+        random.shuffle(processed_data)
+        return processed_data[:10000]

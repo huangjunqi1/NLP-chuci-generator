@@ -11,7 +11,7 @@ parser.add_argument("--sentsnum",default=10,type=int)
 args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_path = f'checkpoints/{args.dataset}_best_model.pt'
+model_path = f'checkpoints/{args.dataset}_final_model.pt'
 # 读取模型参数和词表
 ckpt = torch.load(model_path,map_location=device)
 vocab = Vocab.vocab
@@ -62,7 +62,7 @@ while True:
         for i in range(1,n_sents):
             ans = ''
             for j in range(config.max_len):
-                tmp1,tmp2 = torch.topk(outputs[0][i][j],2)
+                tmp1,tmp2 = torch.topk(outputs[0][i-1][j],2)
                 tt = tmp2[0].item()
                 if (tt == 0): tt = tmp2[1].item()
                 word = inversed_vocab[tt]

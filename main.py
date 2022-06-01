@@ -16,7 +16,7 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
     model.train()
     total_loss = 0.0
     start_time = time.time()
-    log_step = 2
+    log_step = 50
     n_batch = len(train_loader)
     #print(n_batch)
     for i,(input, target) in enumerate(train_loader):
@@ -27,6 +27,7 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
         # 计算loss
         loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
         total_loss =total_loss + loss.item()
+        #total_loss += loss.item()
         # 计算梯度
         optimizer.zero_grad()
         loss.backward()
@@ -53,7 +54,7 @@ def evaluate(model, test_loader, args):
         for input, target in test_loader:
             input, target = input.to(args.device), target.to(args.device)
             output, hidden = model(input)
-            loss = loss_f(output.view(-1, output.size(-1)), target.view(-1)) #拉成线？
+            loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
             total_loss = total_loss + loss.item()
             total_batch = total_batch + 1
 
@@ -86,14 +87,14 @@ def main():
         n_layers=args.n_layers,
     )
     if(args.model != None):
-        model_path = f'checkpoints/{args.model}_best_model.pt'
+        model_path = f'checkpoints/{args.model}_final_model.pt'
         ckpt = torch.load(model_path)
         model.load_state_dict(ckpt['model'])
     model = model.to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     #print(len(dataset.train_set))
     train_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=True)
-    test_loader = DataLoader(dataset.test_set, batch_size=args.batch_size, shuffle=False)
+    test_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=False)
     best_loss = float('inf')
     for epoch in range(args.epochs):
         epoch_start_time = time.time()
@@ -111,6 +112,11 @@ def main():
                         'vocab': Vocab.vocab,
                         'inversed_vocab': Vocab.inversed_vocab},    
                        f'checkpoints/{args.dataset}_best_model.pt')
+            
+    torch.save({'model': model.state_dict(),
+                        'vocab': Vocab.vocab,
+                        'inversed_vocab': Vocab.inversed_vocab},    
+                       f'checkpoints/{args.dataset}_final_model.pt')
 
 if __name__ == '__main__':
     main()
