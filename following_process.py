@@ -3,7 +3,7 @@ import json
 import random
 import torch
 import config
-from new_model import S2SModel
+from old_model import S2SModel
 from dataloader import Vocab
 import numpy as np
 import copy
@@ -80,15 +80,20 @@ def generate(raw_input,inputs):
     sents=[]
     sent =''
     sents.append(raw_input+',')
+    last_word = '笑'
     for i in range(1,inputs.size(1)):
         for j in range(0,config.max_len): 
-            possiblity = outputs[0,i-1,j,:]            
+            possiblity = outputs[0,i,j,:]            
             value,index = torch.topk(possiblity,5)
-            if(index[0].item() == Vocab.vocab['，'] or index[0].item() ==  Vocab.vocab['。']): break
-            if(index[0].item() == 0 or index[0].item() == Vocab.vocab['不'] or index[0].item() == Vocab.vocab['有']):
-                word = inversed_vocab[index[1].item()]
-            else:
-                word = inversed_vocab[index[0].item()]
+            order = 0
+            if(index[order].item() == 0): order = order + 1 
+            word = inversed_vocab[index[order].item()]
+            if(word=='，' or word == '。' ): break
+            while(1):
+                word = inversed_vocab[index[order].item()]
+                if((word == '余' and last_word == "余") or (0)):order = order + 1
+                else: break
+            last_word = word
             print(word)
             sent = sent + word
         sent += '，'if i%2 == 0 else '。'
