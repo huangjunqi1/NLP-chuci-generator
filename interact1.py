@@ -11,7 +11,7 @@ parser.add_argument("--sentsnum",default=10,type=int)
 args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_path = f'checkpoints/{args.dataset}_final_model.pt'
+model_path = f'checkpoints/{args.dataset}_best_model.pt'
 # 读取模型参数和词表
 ckpt = torch.load(model_path,map_location=device)
 vocab = Vocab.vocab
@@ -20,7 +20,6 @@ inversed_vocab = Vocab.inversed_vocab
 input_size = 300
 hidden_size = 512
 n_layers = 2
-#model_fn = Seq2seqModel if args.model == 'seq2seq' else SimpleModel
 model = S2SModel(
     voc_size=Vocab.vocab_size,
     input_size=input_size,
@@ -30,7 +29,7 @@ model = S2SModel(
 # 加载保存的参数到模型当中
 model.load_state_dict(ckpt['model'])
 model = model.to(device)
-# 设置生成的诗句数量和长度
+# 设置生成的诗句数量
 n_sents = args.sentsnum
 
 while True:
@@ -70,8 +69,3 @@ while True:
                 if (word == '。') or (word == '，'): break
                 
             print(ans)
-        #anss = outputs[0].argmax(2)
-
-    
-
-    # TODO: 请补全生成的代码
