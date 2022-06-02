@@ -33,6 +33,7 @@ def callback():
     for sent in sents:
         text.insert(INSERT,sent)        
         text.insert(INSERT,'\n') 
+    text.insert(INSERT,'\n')
     for k,v in annotations.items():
         text.insert(INSERT,k)
         text.insert(INSERT,'：')

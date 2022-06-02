@@ -1,4 +1,3 @@
-from __future__ import annotations
 import zhconv
 import json
 import random
@@ -17,8 +16,8 @@ def get_dic(list):
             print(string)
             for word in string:
                 if word in dic or zhconv.convert(word,'zh-hant') in dic :
-                    if(word=='向'): continue
-                    newdic[word] = dic[word]
+                    if(word=='向' or len(dic[word]) > 20): continue
+                    newdic[word] = dic[word][:2]
     return newdic
 
 
@@ -27,8 +26,8 @@ def get_real_chuci(list):
     # with open("mywork/dic.json",'r',encoding='utf-8-sig') as f:
     #     dic=json.load(f)
     dic=np.load('data/dict.npy', allow_pickle=True).item()
-    ll=[]
-    for line in list:
+    ll=[list[0]]
+    for line in list[1:]:
         string=''
         for word in line:
             convert=[]
@@ -42,7 +41,7 @@ def get_real_chuci(list):
                 string+=word
             else:
                 c=random.random()
-                if c>0.4:
+                if c>0.3:
                     string+=word
                 else:
                     num=len(convert)
@@ -57,7 +56,8 @@ def generate(raw_input,inputs):
     # inputs: batch_size*num_sents*max_len    
     #outputs[:,sent_id,i,:] batch_size*num_sents*maxlen*voc_size
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model_path = 'checkpoints\lvshi_best_model.pt'#f'checkpoints/{args.dataset}_{args.model}_best_model.pt'
+    # model_path = 'checkpoints\chuci_best_model.pt'#f'checkpoints/{args.dataset}_{args.model}_best_model.pt'
+    model_path = 'checkpoints\lvshi_final_model.pt'
     ckpt = torch.load(model_path,map_location=device)
     vocab = ckpt['vocab']
     inversed_vocab = ckpt['inversed_vocab']
@@ -94,6 +94,7 @@ def generate(raw_input,inputs):
         sents.append(copy.deepcopy(sent))
         sent = ''
     sents,annotations = get_real_chuci(sents)
+    # annotations=None
     print(annotations)       
     return sents,annotations
 
