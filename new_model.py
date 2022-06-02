@@ -60,7 +60,7 @@ class S2SModel(nn.Module):
         for sent_id in range(num_sents):
             if (sent_id == 5):
                 enc_inputs = enc_input0
-                enc_hidden = enc_hidden0
+                # enc_hidden = enc_hidden0
             if (sent_id > 0):
                 enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
             input = torch.LongTensor([Sos]*batch_size)
@@ -83,7 +83,7 @@ class S2SModel(nn.Module):
                         Key_padding_mask[j][i] = True
                     if (input[j].item() == Eos1 or input[j].item() == Eos2): flag[j] = True
             if (sent_id == 0): 
-                enc_hidden0 = enc_hidden
+                #enc_hidden0 = enc_hidden
                 enc_input0 = enc_inputs
                 
         return outputs,hidden
