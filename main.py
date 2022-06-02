@@ -16,24 +16,21 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
     model.train()
     total_loss = 0.0
     start_time = time.time()
-    log_step = 2
+    log_step = 50
     n_batch = len(train_loader)
     #print(n_batch)
     for i,(input, target) in enumerate(train_loader):
         #print(i,"hahahahaha")
         input, target = input.to(args.device), target.to(args.device)
         output, hidden = model(input, targets=target)
-        # 计算loss
+        #print(i,"hahahahaha")
         loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
-        total_loss = total_loss + loss.item()
-        total_loss += loss.item()
-        # 计算梯度
+        total_loss =total_loss + loss.item()
         optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip) #梯度裁剪
         optimizer.step()
-        # 每隔一定循环数输出loss,监控训练过程
-        if i % log_step == 0 and i > 0:
+        if i > 0 and i % log_step == 0:
             avg_loss = total_loss / log_step
             elapse = time.time() - start_time
             print('| epoch {:3d} | batch {:3d}/{:3d} | {:5.2f} ms/batch | loss {:5.2f} |'.format(
@@ -45,7 +42,7 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
 
 def evaluate(model, test_loader, args):
     loss_f = nn.CrossEntropyLoss(ignore_index=config.Pad)
-    model.eval() #进入测试模式，停止更新参数与dropout
+    model.eval()
     total_loss = 0.0
     total_batch = 0
 
@@ -53,7 +50,7 @@ def evaluate(model, test_loader, args):
         for input, target in test_loader:
             input, target = input.to(args.device), target.to(args.device)
             output, hidden = model(input)
-            loss = loss_f(output.view(-1, output.size(-1)), target.view(-1)) #拉成线？
+            loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
             total_loss = total_loss + loss.item()
             total_batch = total_batch + 1
 
@@ -86,12 +83,13 @@ def main():
         n_layers=args.n_layers,
     )
     if(args.model != None):
-        model_path = f'checkpoints/{args.model}_best_model.pt'
-        ckpt = torch.load(model_path,map_location=args.device)
+        model_path = f'checkpoints/{args.model}_final_model.pt'
+        ckpt = torch.load(model_path)
         model.load_state_dict(ckpt['model'])
     model = model.to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    train_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=True) #打包成batch
+    #print(len(dataset.train_set))
+    train_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=True)
     test_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=False)
     best_loss = float('inf')
     for epoch in range(args.epochs):
@@ -110,6 +108,11 @@ def main():
                         'vocab': Vocab.vocab,
                         'inversed_vocab': Vocab.inversed_vocab},    
                        f'checkpoints/{args.dataset}_best_model.pt')
+            
+    torch.save({'model': model.state_dict(),
+                        'vocab': Vocab.vocab,
+                        'inversed_vocab': Vocab.inversed_vocab},    
+                       f'checkpoints/{args.dataset}_final_model.pt')
 
 if __name__ == '__main__':
     main()

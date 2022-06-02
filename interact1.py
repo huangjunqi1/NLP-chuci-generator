@@ -4,13 +4,14 @@ from model import S2SModel
 from dataloader import Vocab
 import config
 
-#parser = ArgumentParser()
-#parser.add_argument("--dataset", default="wuyanlvshi", type=str)
+parser = ArgumentParser()
+parser.add_argument("--dataset", default="lvshi", type=str)
 #parser.add_argument("--model", default="simple", type=str)
-#args = parser.parse_args()
+parser.add_argument("--sentsnum",default=12,type=int)
+args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_path = 'checkpoints/lvshi_best_model.pt'
+model_path = f'checkpoints/{args.dataset}_best_model.pt'
 # 读取模型参数和词表
 ckpt = torch.load(model_path,map_location=device)
 vocab = Vocab.vocab
@@ -19,7 +20,6 @@ inversed_vocab = Vocab.inversed_vocab
 input_size = 300
 hidden_size = 512
 n_layers = 2
-#model_fn = Seq2seqModel if args.model == 'seq2seq' else SimpleModel
 model = S2SModel(
     voc_size=Vocab.vocab_size,
     input_size=input_size,
@@ -29,8 +29,8 @@ model = S2SModel(
 # 加载保存的参数到模型当中
 model.load_state_dict(ckpt['model'])
 model = model.to(device)
-# 设置生成的诗句数量和长度
-n_sents = 8
+# 设置生成的诗句数量
+n_sents = args.sentsnum
 
 while True:
     model.eval()
@@ -61,7 +61,7 @@ while True:
         for i in range(1,n_sents):
             ans = ''
             for j in range(config.max_len):
-                tmp1,tmp2 = torch.topk(outputs[0][i][j],2)
+                tmp1,tmp2 = torch.topk(outputs[0][i-1][j],2)
                 tt = tmp2[0].item()
                 if (tt == 0): tt = tmp2[1].item()
                 word = inversed_vocab[tt]
@@ -69,8 +69,3 @@ while True:
                 if (word == '。') or (word == '，'): break
                 
             print(ans)
-        #anss = outputs[0].argmax(2)
-
-    
-
-    # TODO: 请补全生成的代码
