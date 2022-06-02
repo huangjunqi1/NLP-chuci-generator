@@ -58,7 +58,7 @@ class S2SModel(nn.Module):
         enc_outputs = None
         Key_padding_mask = torch.zeros(batch_size,self.max_len,dtype=torch.bool,device = inputs.device)
         for sent_id in range(num_sents):
-            if (sent_id == 4):
+            if (sent_id == 5):
                 enc_inputs = enc_input0
                 enc_hidden = enc_hidden0
             if (sent_id > 0):

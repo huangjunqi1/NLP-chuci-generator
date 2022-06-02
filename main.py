@@ -24,7 +24,6 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
         input, target = input.to(args.device), target.to(args.device)
         output, hidden = model(input, targets=target)
         #print(i,"hahahahaha")
-        # 计算loss
         loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
         total_loss =total_loss + loss.item()
         #total_loss += loss.item()
@@ -32,7 +31,7 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip) #梯度裁剪
         optimizer.step()
-        if i % log_step == 0 and i > 0:
+        if i > 0 and i % log_step == 0:
             avg_loss = total_loss / log_step
             elapse = time.time() - start_time
             print('| epoch {:3d} | batch {:3d}/{:3d} | {:5.2f} ms/batch | loss {:5.2f} |'.format(
@@ -44,7 +43,7 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
 
 def evaluate(model, test_loader, args):
     loss_f = nn.CrossEntropyLoss(ignore_index=config.Pad)
-    model.eval() 
+    model.eval()
     total_loss = 0.0
     total_batch = 0
 

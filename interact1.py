@@ -7,7 +7,7 @@ import config
 parser = ArgumentParser()
 parser.add_argument("--dataset", default="lvshi", type=str)
 #parser.add_argument("--model", default="simple", type=str)
-parser.add_argument("--sentsnum",default=10,type=int)
+parser.add_argument("--sentsnum",default=12,type=int)
 args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
