@@ -3,7 +3,7 @@ from PIL import Image,ImageTk
 from tkinter import scrolledtext    
 from following_process import * 
 from dataloader import Vocab
-sent_num = 12
+sent_num = 10
 
 root=Tk()
 root.geometry("400x700+600+30")#宽乘以高加上水平偏移量加上垂直偏移量
@@ -33,6 +33,7 @@ def callback():
     for sent in sents:
         text.insert(INSERT,sent)        
         text.insert(INSERT,'\n') 
+    text.insert(INSERT,'\n')
     for k,v in annotations.items():
         text.insert(INSERT,k)
         text.insert(INSERT,'：')
