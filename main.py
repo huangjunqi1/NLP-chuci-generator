@@ -1,78 +1,118 @@
-import json as json
 import os
-import pandas
-import zhconv
-from tqdm import trange
+from argparse import ArgumentParser
+import config
 import torch
-from collections import Counter
-from sklearn.model_selection import train_test_split
-S_CHUCI = 1
-os.makedirs('data',exist_ok=True)
-cnt={S_CHUCI:0}
-fname ='chuci.json'
-#poems = pandas.read_json('chuci.json')
+import torch.nn as nn
+from dataloader import PoemDataset
+from model import S2SModel
+import time
+from torch.utils.data import DataLoader
+from dataloader import Vocab
 
-with open('data/chuci.txt', 'w', encoding='utf-8-sig') as outf:
-    with open(fname,'r',encoding='utf-8-sig') as f:
-        a=json.load(f)
-        for poet in a:
-            con=poet['content']
-            conv = [zhconv.convert(sent, 'zh-hans') for sent in con]
-            for sent in con:
-                outf.write(sent)
-                outf.write('\n')
-            cnt[S_CHUCI]+=1
+torch.autograd.set_detect_anomaly(True)
+def train_one_epoch(model, optimizer, train_loader, args, epoch):
 
-data_path='data/chuci.txt'
-class chuciDataset(object):
-    def __init__(self,data_path,min_freq=1):
-        counter=Counter()
-        all_sents=[]
-        self.sent_length=30
-        self.unk_id=0
-
-        with open(data_path,'r',encoding='utf-8-sig') as f:
-            lines=f.readlines()
-            for line in lines:
-                counter.update(line)
-                all_sents.append(line)
-        with open('data/qiyanjueju.txt','r',encoding='utf-8-sig') as f:
-            lines=f.readlines()
-            for line in lines:
-                counter.update(line)
-                all_sents.append(line)
-        with open('data/qiyanlvshi.txt','r',encoding='utf-8-sig') as f:
-            lines=f.readlines()
-            for line in lines:
-                counter.update(line)
-                all_sents.append(line)
-        with open('data/wuyanjueju.txt','r',encoding='utf-8-sig') as f:
-            lines=f.readlines()
-            for line in lines:
-                counter.update(line)
-                all_sents.append(line)
-        with open('data/wuyanlvshi.txt','r',encoding='utf-8-sig') as f:
-            lines=f.readlines()
-            for line in lines:
-                counter.update(line)
-                all_sents.append(line)
-        vocab=[k for k,v in counter.items() if v<2]
-        self.vocab_size=len(vocab)+1
-        self.vocab=dict(zip(vocab,range(1,self.vocab_size)))
-        self.inversed_vocab = dict(zip(range(1,self.vocab_size),vocab))
-
-        self.entire_set=self.data_process(all_sents)
-
-    # def data_process(selfself,poems):
-    #     processed_data=[]
-    #     for i,poem in enumerate(poems):
-    #         poem=poem.strip()
-    #         numeric=torch.tensor([self.vocab.get(word,self.unk_id) for word in poem],dtype=torch.long)
-    #         # get() equals to [] mostly the only difference is get() continuing running when the key isnot exist
-    #         numeric=numeric.view(-1,30)
-    #         source=numeric[:,:-1]# although this guy seems useless
-    #         target=numeric[:,1:]
-    #         processed_data.append((source,target))
+    loss_f = nn.CrossEntropyLoss(ignore_index=config.Pad)
+    model.train()
+    total_loss = 0.0
+    start_time = time.time()
+    log_step = 50
+    n_batch = len(train_loader)
+    #print(n_batch)
+    for i,(input, target) in enumerate(train_loader):
+        #print(i,"hahahahaha")
+        input, target = input.to(args.device), target.to(args.device)
+        output, hidden = model(input, targets=target)
+        #print(i,"hahahahaha")
+        loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
+        total_loss =total_loss + loss.item()
+        optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip) #梯度裁剪
+        optimizer.step()
+        if i > 0 and i % log_step == 0:
+            avg_loss = total_loss / log_step
+            elapse = time.time() - start_time
+            print('| epoch {:3d} | batch {:3d}/{:3d} | {:5.2f} ms/batch | loss {:5.2f} |'.format(
+                epoch, i, n_batch, elapse * 1000 / log_step, avg_loss
+            ))
+            start_time = time.time()
+            total_loss = 0.0
 
 
-chuciDataset(data_path)
+def evaluate(model, test_loader, args):
+    loss_f = nn.CrossEntropyLoss(ignore_index=config.Pad)
+    model.eval()
+    total_loss = 0.0
+    total_batch = 0
+
+    with torch.no_grad():
+        for input, target in test_loader:
+            input, target = input.to(args.device), target.to(args.device)
+            output, hidden = model(input)
+            loss = loss_f(output.view(-1, output.size(-1)), target.view(-1))
+            total_loss = total_loss + loss.item()
+            total_batch = total_batch + 1
+
+    return total_loss / total_batch
+
+
+# Main
+def main():
+    parser = ArgumentParser()  #命令行参数
+    parser.add_argument("--dataset", default="lvshi", type=str)
+    parser.add_argument("--batch_size", default=64, type=int)
+    parser.add_argument("--epochs", default=10, type=int)
+    parser.add_argument("--lr", default=0.001, type=float)
+    parser.add_argument("--grad_clip", default=0.1, type=float)
+    parser.add_argument("--model",default=None,type = str)
+    parser.add_argument("--input_size", default=300, type=int)
+    parser.add_argument("--hidden_size", default=512, type=int)
+    parser.add_argument("--n_layers", default=2, type=int)
+
+    os.makedirs('checkpoints', exist_ok=True)
+    args = parser.parse_args()  
+    args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    data_path = f'data/{args.dataset}.txt'
+    dataset = PoemDataset(data_path)
+
+    model = S2SModel(
+        voc_size=Vocab.vocab_size,
+        input_size=args.input_size,
+        hidden_size=args.hidden_size,
+        n_layers=args.n_layers,
+    )
+    if(args.model != None):
+        model_path = f'checkpoints/{args.model}_final_model.pt'
+        ckpt = torch.load(model_path)
+        model.load_state_dict(ckpt['model'])
+    model = model.to(args.device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    #print(len(dataset.train_set))
+    train_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(dataset.train_set, batch_size=args.batch_size, shuffle=False)
+    best_loss = float('inf')
+    for epoch in range(args.epochs):
+        epoch_start_time = time.time()
+        train_one_epoch(model, optimizer, train_loader, args, epoch)
+        val_loss = evaluate(model, test_loader, args)
+
+        print('-' * 65)
+        print('| epoch {:3d} | time: {:5.2f}s | validation loss {:5.2f} | '.format(
+            epoch, (time.time() - epoch_start_time), val_loss))
+        print('-' * 65)
+
+        if val_loss < best_loss:
+            best_loss = val_loss
+            torch.save({'model': model.state_dict(),
+                        'vocab': Vocab.vocab,
+                        'inversed_vocab': Vocab.inversed_vocab},    
+                       f'checkpoints/{args.dataset}_best_model.pt')
+            
+    torch.save({'model': model.state_dict(),
+                        'vocab': Vocab.vocab,
+                        'inversed_vocab': Vocab.inversed_vocab},    
+                       f'checkpoints/{args.dataset}_final_model.pt')
+
+if __name__ == '__main__':
+    main()
