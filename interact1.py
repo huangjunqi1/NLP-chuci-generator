@@ -11,7 +11,7 @@ parser.add_argument("--sentsnum",default=12,type=int)
 args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_path = f'checkpoints/{args.dataset}_best_model.pt'
+model_path = f'checkpoints/{args.dataset}_final_model.pt'
 # 读取模型参数和词表
 ckpt = torch.load(model_path,map_location=device)
 vocab = Vocab.vocab
