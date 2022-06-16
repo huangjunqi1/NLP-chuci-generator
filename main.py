@@ -106,7 +106,7 @@ def main():
             )
         flag = "new"
     if(args.load != None):
-        model_path = f'checkpoints/{args.load}_final_model.pt'
+        model_path = f'checkpoints/{args.model}_{args.load}_final_model.pt'
         ckpt = torch.load(model_path)
         model.load_state_dict(ckpt['model'])
     model = model.to(args.device)
@@ -130,12 +130,12 @@ def main():
             torch.save({'model': model.state_dict(),
                         'vocab': Vocab.vocab,
                         'inversed_vocab': Vocab.inversed_vocab},    
-                       f'checkpoints/{args.dataset}_best_model.pt')
+                       f'checkpoints/{args.model}_{args.dataset}_best_model.pt')
             
     torch.save({'model': model.state_dict(),
                         'vocab': Vocab.vocab,
                         'inversed_vocab': Vocab.inversed_vocab},    
-                       f'checkpoints/{args.dataset}_final_model.pt')
+                       f'checkpoints/{args.model}_{args.dataset}_final_model.pt')
 
 if __name__ == '__main__':
     main()
