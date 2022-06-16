@@ -43,6 +43,48 @@ class Encoder(nn.Module):
         output = self.drop(output)
         return output,hidden
 
+class oldmodel(nn.Module):
+    def __init__(self,voc_size,input_size,hidden_size,n_layers):
+        super().__init__()
+        self.voc_size = voc_size
+        self.max_len = config.max_len
+        self.encoder = Encoder(self.voc_size,input_size,hidden_size,n_layers)
+        self.decoder = AttentionDecoder(self.voc_size,input_size,hidden_size,hidden_size,n_layers)
+    def forward(self,inputs,hidden=None,targets=None,teacher_force_ratio=config.teacher_for_ratio):
+        # inputs: batch_size*num_sents*max_len
+        num_sents = inputs.size(1)
+        batch_size = inputs.size(0)
+        outputs = torch.zeros(batch_size,num_sents,self.max_len,self.voc_size,device=inputs.device)
+        enc_hidden = None
+        enc_outputs = None
+        Key_padding_mask = torch.zeros(batch_size,self.max_len,dtype=torch.bool,device = inputs.device)
+        for sent_id in range(num_sents):
+            if (sent_id > 0):
+                enc_outputs,enc_hidden = self.encoder(enc_inputs,enc_hidden)
+            input = torch.LongTensor([Sos]*batch_size)
+            input = input.to(inputs.device)
+            enc_inputs = torch.zeros(inputs.size(0),self.max_len, dtype = torch.long, device = inputs.device)
+            #enc_inputs[:,0] = input
+            flag = []
+            key_padding_mask = Key_padding_mask
+            Key_padding_mask = torch.zeros(batch_size,self.max_len,dtype=torch.bool,device = inputs.device)
+            for i in range(batch_size): flag.append(False)
+            for i in range(self.max_len):
+                #f i==0: continue
+                output,hidden = self.decoder(key_padding_mask.detach(),input.unsqueeze(1),hidden,enc_outputs)
+                outputs[:,sent_id,i,:] = output[:,0,:]
+                if (sent_id == 0): input = inputs[:,0,i]
+                else:
+                    input = (targets[:,sent_id,i] if targets is not None and random.random() < teacher_force_ratio else output.argmax(2).squeeze(1))
+                enc_inputs[:,i] = input
+                for j in range(batch_size):
+                    if (flag[j]):
+                        Key_padding_mask[j][i] = True
+                    if (input[j].item() == Eos1 or input[j].item() == Eos2): flag[j] = True
+                    
+                
+        return outputs,hidden
+
 class S2SModel(nn.Module):
     def __init__(self,voc_size,input_size,hidden_size,n_layers):
         super().__init__()

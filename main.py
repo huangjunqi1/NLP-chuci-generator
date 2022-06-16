@@ -5,12 +5,13 @@ import torch
 import torch.nn as nn
 from dataloader import PoemDataset
 from model import S2SModel
+from model import oldmodel
 import time
 from torch.utils.data import DataLoader
 from dataloader import Vocab
 
 torch.autograd.set_detect_anomaly(True)
-def train_one_epoch(model, optimizer, train_loader, args, epoch):
+def train_one_epoch(model, optimizer, train_loader, args, epoch , old_new):
 
     loss_f = nn.CrossEntropyLoss(ignore_index=config.Pad)
     model.train()
@@ -19,8 +20,10 @@ def train_one_epoch(model, optimizer, train_loader, args, epoch):
     log_step = 50
     n_batch = len(train_loader)
     #print(n_batch)
-    for i,(input, target) in enumerate(train_loader):
+    for i,(input, target1) in enumerate(train_loader):
         #print(i,"hahahahaha")
+        if (old_new == "old"): target = input
+        else: target = target1
         input, target = input.to(args.device), target.to(args.device)
         output, hidden = model(input, targets=target)
         #print(i,"hahahahaha")
@@ -66,6 +69,7 @@ def main():
     parser.add_argument("--lr", default=0.001, type=float)
     parser.add_argument("--grad_clip", default=0.1, type=float)
     parser.add_argument("--model",default=None,type = str)
+    parser.add_argument("--load",default = None,type = str)
     parser.add_argument("--input_size", default=300, type=int)
     parser.add_argument("--hidden_size", default=512, type=int)
     parser.add_argument("--n_layers", default=2, type=int)
@@ -76,14 +80,33 @@ def main():
     data_path = f'data/{args.dataset}.txt'
     dataset = PoemDataset(data_path)
 
-    model = S2SModel(
-        voc_size=Vocab.vocab_size,
-        input_size=args.input_size,
-        hidden_size=args.hidden_size,
-        n_layers=args.n_layers,
-    )
-    if(args.model != None):
-        model_path = f'checkpoints/{args.model}_final_model.pt'
+    if args.model != None:
+        if args.model == "old": 
+            model = oldmodel(
+                voc_size=Vocab.vocab_size,
+                input_size=args.input_size,
+                hidden_size=args.hidden_size,
+                n_layers=args.n_layers,
+            )
+            flag = "old"
+        else:
+            model = S2SModel(
+                voc_size=Vocab.vocab_size,
+                input_size=args.input_size,
+                hidden_size=args.hidden_size,
+                n_layers=args.n_layers,
+            )
+            flag = "new"
+    else:
+        model = S2SModel(
+                voc_size=Vocab.vocab_size,
+                input_size=args.input_size,
+                hidden_size=args.hidden_size,
+                n_layers=args.n_layers,
+            )
+        flag = "new"
+    if(args.load != None):
+        model_path = f'checkpoints/{args.load}_final_model.pt'
         ckpt = torch.load(model_path)
         model.load_state_dict(ckpt['model'])
     model = model.to(args.device)
@@ -94,7 +117,7 @@ def main():
     best_loss = float('inf')
     for epoch in range(args.epochs):
         epoch_start_time = time.time()
-        train_one_epoch(model, optimizer, train_loader, args, epoch)
+        train_one_epoch(model, optimizer, train_loader, args, epoch , flag)
         val_loss = evaluate(model, test_loader, args)
 
         print('-' * 65)
